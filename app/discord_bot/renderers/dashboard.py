@@ -18,10 +18,31 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
             name="Hôm nay", value=f"{overview.today:%d/%m/%Y} • {overview.timezone}", inline=False
         )
     embed.add_field(
-        name="Lịch trình hôm nay", value="Chưa có dữ liệu • Calendar sắp ra mắt.", inline=False
+        name="Lịch trình hôm nay",
+        value=f"{overview.events_today} lịch confirmed • Mở Today để xem."
+        if overview and overview.events_today is not None
+        else "Mở bảng riêng từ /menu hoặc Today để xem dữ liệu.",
+        inline=False,
     )
     for name in ("Tasks", "Projects", "Reminders"):
-        embed.add_field(name=name, value="Chưa có dữ liệu", inline=True)
+        metric = getattr(overview, name.lower(), None) if overview else None
+        value = (
+            str(metric)
+            if metric is not None
+            else "Sắp ra mắt"
+            if name == "Reminders"
+            else "Xem trong bảng riêng"
+        )
+        embed.add_field(name=name, value=value, inline=True)
+    if overview and overview.done_tasks is not None:
+        embed.add_field(name="Tasks đã xong", value=str(overview.done_tasks), inline=True)
+        embed.add_field(
+            name="Cách đếm",
+            value=(
+                "Tasks không tính đã hủy; Projects không tính lưu trữ. Reminders chưa có backend."
+            ),
+            inline=False,
+        )
     embed.add_field(
         name="Trạng thái các module",
         inline=False,
@@ -111,7 +132,10 @@ def render_help() -> discord.Embed:
     )
     embed.add_field(
         name="Sắp ra mắt",
-        value="Task, lịch, nhắc việc và AI chưa hỗ trợ thao tác dữ liệu.",
+        value=(
+            "Reminders, AI và các module mở rộng: Sắp ra mắt. "
+            "Tasks/Projects/Calendar có Thêm, chọn mục để Sửa, đổi trạng thái và Refresh."
+        ),
         inline=False,
     )
     embed.add_field(

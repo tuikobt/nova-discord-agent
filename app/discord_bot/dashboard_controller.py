@@ -5,6 +5,8 @@ import logging
 import discord
 
 from app.discord_bot.checks import authorize_interaction
+from app.discord_bot.core_controller import CoreController
+from app.discord_bot.core_state import CORE_SCREENS, CoreRoute
 from app.discord_bot.dashboard_publisher import DashboardPublisher, DashboardPublishError
 from app.discord_bot.error_handlers import send_private
 from app.discord_bot.renderers.dashboard import (
@@ -25,13 +27,18 @@ logger = logging.getLogger(__name__)
 
 class DashboardController:
     def __init__(
-        self, client: discord.Client, authorization: OwnerAuthorization, settings: SettingsService
+        self,
+        client: discord.Client,
+        authorization: OwnerAuthorization,
+        settings: SettingsService,
+        core_services,
     ) -> None:
         self.client = client
         self.authorization = authorization
         self.settings = settings
-        self.service = DashboardService(settings)
+        self.service = DashboardService(settings, core_services.summary)
         self.publisher = DashboardPublisher(client, settings)
+        self.core = CoreController(self, core_services)
 
     async def restore(self) -> None:
         preferences = await self.settings.get(self.authorization.owner_id)
@@ -70,8 +77,13 @@ class DashboardController:
                     "\nBảng đã tạo nhưng chưa ghim được. Kiểm tra quyền Pin Messages "
                     "của bot hoặc ghim thủ công, rồi mở lại /menu."
                 )
-            await interaction.edit_original_response(
-                content=content, allowed_mentions=discord.AllowedMentions.none()
+            # Shared anchor stays generic; real aggregates are returned only to the owner.
+            view = DashboardView(self, anchor=False)
+            view.message = await interaction.edit_original_response(
+                content=content,
+                embed=render_dashboard(await self.service.overview(interaction.user.id)),
+                view=view,
+                allowed_mentions=discord.AllowedMentions.none(),
             )
         except Exception as error:
             await self.show_error(interaction, error)
@@ -97,6 +109,9 @@ class DashboardController:
             route = Screen(screen)
             if from_anchor:
                 await self.publisher.require_current(interaction.user.id, interaction)
+            if route in CORE_SCREENS:
+                await self.core.open(interaction, CoreRoute(route, page=page), previous=previous)
+                return
             if route == Screen.HOME:
                 embed = render_dashboard(await self.service.overview(interaction.user.id))
                 view = DashboardView(self, anchor=False)

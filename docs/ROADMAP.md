@@ -9,7 +9,7 @@
 | P0 | Planning & Design | ✅ DONE (2026-10-23) | PRD, Architecture, Database, Discord UI, Agent Tools, Security, Roadmap, AGENTS, Handoff |
 | P1 | Foundation | ✅ DONE (2026-10-23) | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
 | P2 | Dashboard UI | ✅ DONE (2026-10-23) | buttons/select/modal, module views, settings shell, persistent view |
-| P3 | Core Management | 🟨 IN PROGRESS — 3A/3B hoàn tất; 3C chưa bắt đầu | Tasks, Projects, Calendar (DB CRUD + conflicts) |
+| P3 | Core Management | 🟨 IN PROGRESS — 3C source/tests xong, chờ nghiệm thu Discord | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ⬜ NOT STARTED | reminders schedule, retry/delivery, DM/channel |
 | P5 | AI Agent | ⬜ NOT STARTED | natural-language DM + OpenAI tool calling + confirmations |
 | P6 | Memory & Proactive Automation | ⬜ NOT STARTED | memory controls, planner suggestions, morning/daily/weekly reports |
@@ -86,7 +86,9 @@
 
 **Checkpoint 3A, 2026-10-23:** Database & Migration hoàn tất với **250 tests pass**, gồm hồi quy P1/P2. Có backup `backups/pre-phase-3a-20261023.db`; đã kiểm tra migration/restore trên bản sao DB Phase 2 thực tế, không nâng cấp `nova.db` đang dùng trong phiên 3A. Báo cáo/runbook: [`PHASE_3A_VALIDATION.md`](PHASE_3A_VALIDATION.md). Handoff: [`PHASE_3_HANDOFF.md`](PHASE_3_HANDOFF.md).
 
-**Checkpoint 3B, 2026-10-23:** người dùng yêu cầu tiếp tục sau bàn giao 3A. Repositories/services hoàn tất, **340 tests pass in 6.02s**, lint/format/compile pass, hồi quy P1/P2/3A đạt. Không đổi schema hoặc chạy migration trên DB thật. Service API và tests: [`PHASE_3B_VALIDATION.md`](PHASE_3B_VALIDATION.md). **Dừng ở 3B; chưa triển khai 3C.**
+**Checkpoint 3B, 2026-10-23:** repositories/services hoàn tất, **340 tests pass in 6.02s**, lint/format/compile pass, hồi quy P1/P2/3A đạt. Không đổi schema hoặc chạy migration trên DB thật. Service API và kết quả lịch sử: [`PHASE_3B_VALIDATION.md`](PHASE_3B_VALIDATION.md).
+
+**Checkpoint 3C, 2026-10-23:** người dùng yêu cầu tiếp tục sau 3B. Đã nối Discord UI với services, counts/Today thật, chọn quan hệ, form/status, paging/filter và confirmations. Bản đầu đạt 388 tests; sau yêu cầu rà soát form, bổ sung bản nháp trước khi Lưu, bộ chọn ngày/giờ và các select thay nhập tay: **419 tests pass in 8.32s**, lint/format/compile pass. Chưa chạy Discord Desktop/Mobile hoặc sửa DB thật trong phiên này. **Chưa chốt toàn P3 DONE**, đợi xác nhận nghiệm thu thực tế theo [`PHASE_3C_VALIDATION.md`](PHASE_3C_VALIDATION.md); không bắt đầu P4.
 
 ### Checkpoints
 
@@ -94,9 +96,13 @@
 - [x] **3B:** repositories owner-scoped, CRUD services, validation nghiệp vụ, progress, filters/pagination, overlap và stale/double submit handling.
 - [ ] **3C:** Discord CRUD UI, confirmations, counts thật, kiểm thử Desktop/Mobile và nghiệm thu toàn bộ P3.
 
+Source và tests 3C đã xong; checkbox giữ trống vì còn nghiệm thu Desktop/Mobile, owner/non-owner và restart Discord thật.
+
 **Giới hạn/assumptions:** schema 3A giữ FK ghép cùng owner, RESTRICT và defaults `proposed/manual`, `todo/medium`. Service 3B cho thao tác tạo lịch thủ công mặc định `confirmed` sau overlap check; `proposed` vẫn được hỗ trợ. Task status đồng bộ completed_at, không tự đổi calendar events liên kết. Updates task/event so sánh version, project so sánh updated_at; SQL ghi có owner predicate. SQLite service writes dùng BEGIN IMMEDIATE để reserve writer trước read-check-write, Foundation/migration vẫn BEGIN như cũ.
 
 **Pending actions thủ công 3B:** hủy task/event, archive project, sửa event confirmed và giữ overlap cần token service cấp, gắn owner/payload/version/conflict snapshot, TTL 5 phút, dùng sau commit thành công; lỗi commit không tiêu thụ token. Lưu trong bộ nhớ có giới hạn 100 phiên, mất khi restart và phải duyệt lại. Không thêm bảng pending_actions/executor AI P5. Tạo bản ghi yêu cầu request_id ổn định để chống double submit, đối chiếu payload khi retry; thay đổi payload hoặc record đã chỉnh sửa có thể yêu cầu key mới. Chỉ một process SQLite, không tuyên bố multi-worker support. UI 3C phải giữ service instances qua các interactions, đọc timezone từ Settings và hiển thị trước/sau cùng conflicts trước khi gửi token duyệt; không tự duyệt token nhận từ lỗi.
+
+**Quyết định UI 3C:** giữ bảng neo chung không có số liệu/nội dung riêng tư; `/menu` trả thêm Home ephemeral với counts thật. CoreServices sống suốt lifecycle client. Mỗi panel có state/expected snapshot riêng; không ghi SQL trong adapter. Modal thường chỉ nhập tên/mô tả, sau đó bản nháp dùng ngày/giờ/priority/fixed/estimated/link pickers; chỉ Lưu mới gọi service. Nhập tay datetime/số phút khác là tùy chọn, form tối đa 4 TextInputs. Bản nháp tối đa 10 phút, không gia hạn khi chọn menu; lock chung chống sửa payload giữa lúc Lưu. Timezone được chụp khi mở form, giữ precision giá trị không chỉnh sửa. Chọn links bằng menu phân trang, không nhập ID. Duyệt chỉ ở trang cuối của diff/conflicts; không tự execute pending action. Dùng archive/cancel thay hard-delete. Summary tính Tasks không cancelled, Projects không archived; Today gồm confirmed events và task todo/doing đến hạn/quá hạn hoặc high/critical. Reminders/AI vẫn sắp ra mắt.
 
 ### Work packages
 
@@ -209,3 +215,4 @@
 | 2026-10-23 | P2 | Hoàn thành dashboard neo, module panels, Help/Settings, timezone modal, persistent View; 159 tests pass; người dùng xác nhận “phase-2 Done”; chưa bắt đầu P3 |
 | 2026-10-23 | P3A | Hoàn tất schema/migration Core Management; 250 tests pass; backup và thử upgrade/restore trên bản sao DB Phase 2; chưa migrate DB đang dùng, chưa bắt đầu 3B/3C |
 | 2026-10-23 | P3B | Hoàn tất repositories/services/validation/overlap/manual approvals; 340 tests pass; schema giữ 0002; chưa nối UI, dừng trước 3C |
+| 2026-10-23 | P3C | Source UI CRUD và confirmations/counts đã triển khai; rà soát UX thêm draft/date-time picker/select; 419 tests pass; chờ nghiệm thu Discord Desktop/Mobile, không đánh dấu toàn P3 DONE và chưa bắt đầu P4 |

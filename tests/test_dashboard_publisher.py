@@ -89,7 +89,9 @@ def test_restart_uses_db_location_instead_of_creating_new_dashboard(
         actor = interaction.user.id
         await controller.publisher.ensure(actor, channel, DashboardView(controller))
         # A new controller/publisher represents a restarted process; only DB data remains.
-        restarted = type(controller)(controller.client, controller.authorization, saved_settings)
+        restarted = type(controller)(
+            controller.client, controller.authorization, saved_settings, controller.core.services
+        )
         await restarted.restore()
         await restarted.publisher.ensure(actor, channel, DashboardView(restarted))
         channel.send.assert_awaited_once()

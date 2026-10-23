@@ -9,6 +9,7 @@ from app.discord_bot.checks import OwnerCommandTree
 from app.discord_bot.commands.foundation import FoundationCommands
 from app.discord_bot.dashboard_controller import DashboardController
 from app.domain.authorization import OwnerAuthorization
+from app.services.core_management import CoreServices
 from app.services.settings_service import SettingsService
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,10 @@ class NovaClient(discord.Client):
         self.authorization = OwnerAuthorization(settings.owner_id)
         self.tree = OwnerCommandTree(self, self.authorization)
         self.settings_service = SettingsService(database.sessions, self.authorization)
-        self.dashboard = DashboardController(self, self.authorization, self.settings_service)
+        self.core_services = CoreServices(database.sessions, self.authorization)
+        self.dashboard = DashboardController(
+            self, self.authorization, self.settings_service, self.core_services
+        )
         self.foundation = FoundationCommands(self.authorization, self.dashboard)
         self.foundation.register(self.tree)
 

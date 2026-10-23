@@ -221,3 +221,9 @@ Schema/revision giữ nguyên `0002_core_management`. Repositories mới luôn �
 Ghi qua services dùng tùy chọn BEGIN IMMEDIATE trước query để serialize SQLite read-check-write và kiểm tra overlap; engine mặc định của Foundation/migration không đổi. Creation chống lặp bằng UUID5 từ owner + loại entity + request_id, không thêm cột hoặc migration. Retry cùng key/payload trả record hiện có; payload đã khác thì từ chối, không tạo thêm.
 
 CRUD dùng archive/cancel thay hard-delete. Hoàn thành/mở lại task đặt/xóa completed_at, không tự đổi event liên kết. Calendar overlap chỉ xét confirmed, dùng `new_start < end AND new_end > start`, không tính event đang sửa; vẫn cho giữ lịch trùng sau xác nhận ràng buộc dữ liệu. Pending actions thủ công 3B nằm trong bộ nhớ, không phải bảng pending_actions P5; mất sau restart. Xem giao thức và giới hạn trong [`PHASE_3B_VALIDATION.md`](PHASE_3B_VALIDATION.md).
+
+## 9. Query cho UI Phase 3C
+
+Không đổi schema/revision. DashboardRepository + SummaryService cung cấp aggregate theo owner trong read transaction: Tasks không cancelled, done trong tập này, Projects không archived và confirmed events giao khoảng ngày local. Không tạo bảng Reminders hoặc dùng số 0 cho module chưa triển khai. Today task query chỉ xét todo/doing, lọc deadline trước cuối ngày (bao gồm overdue) hoặc priority high/critical, trả tối đa 5 previews và tổng thật.
+
+UI chỉ gọi services, không chạy SQL. Home và dữ liệu record trả ephemeral; bảng neo chỉ điều hướng. CoreServices sống suốt client lifecycle để giữ pending actions giữa submit và approve; không restore pending approvals khi restart. UI giữ nguyên DTO field không sửa, expected version/updated_at và request_id khi retry. `CalendarService.list_day/list_week` nhận thêm status filter, tương thích API 3B. Tests/runbook tại [`PHASE_3C_VALIDATION.md`](PHASE_3C_VALIDATION.md).

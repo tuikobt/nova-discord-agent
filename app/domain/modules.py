@@ -1,6 +1,6 @@
 """UI catalogue only; descriptions do not imply future backends exist."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
 
@@ -111,6 +111,8 @@ MODULES: dict[Screen, Module] = {
 }
 
 QUICK_SCREENS = (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.REMINDERS, Screen.AI)
+for _screen in (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.CALENDAR):
+    MODULES[_screen] = replace(MODULES[_screen], available=True)
 MORE_SCREENS = (
     Screen.CALENDAR,
     Screen.GOALS,

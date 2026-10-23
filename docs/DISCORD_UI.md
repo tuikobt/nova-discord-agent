@@ -132,7 +132,7 @@ Nghiệm thu ngày 2026-10-23 theo xác nhận “phase-2 Done” của người
 
 ## 9. Triển khai Phase 2 hiện tại
 
-P2 **DONE** theo xác nhận của người dùng ngày 2026-10-23. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend. P3A đã có schema/migration, P3B có repositories/services nhưng chưa nối UI CRUD; các module vẫn “Sắp ra mắt”.
+P2 **DONE** theo xác nhận của người dùng ngày 2026-10-23. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend. Phần dưới mô tả nền tảng P2; UI Core Management 3C được bổ sung tại mục 10, source/tests sẵn sàng nhưng chờ nghiệm thu thực tế.
 
 - `/menu` trong server tạo hoặc tái sử dụng một dashboard neo. `dashboard_channel_id` và `dashboard_message_id` dùng các cột sẵn có trong `user_settings`; không có migration schema mới.
 - Bảng neo chỉ chứa UI và trạng thái chưa có dữ liệu, không chứa settings riêng tư. Ngày hiện tại được tính từ timezone đã lưu khi mở Home/Today riêng tư. Các bộ đếm không có backend hiển thị “Chưa có dữ liệu”.
@@ -153,3 +153,22 @@ Một lock trong process tuần tự hóa `/menu`. Tin nhắn đang gửi chờ 
 Nếu message trả NotFound, `/menu` phục hồi tại kênh đã lưu; nếu kênh đã bị xóa, dùng kênh riêng nơi gọi lệnh. Forbidden/HTTP lỗi tạm thời không bị coi là đã xóa và không gây tự gửi bảng mới. Thiếu quyền ghim giữ nguyên message/location, báo riêng tư và cho phép thử lại. Startup chỉ restore View, không tự gửi message hoặc sửa quyền Discord.
 
 Chi tiết file, tests và hướng dẫn kiểm tra từng nút: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).
+
+## 10. Core Management UI — source Phase 3C
+
+- Bảng neo và custom IDs v1 của P2 giữ nguyên. Bảng neo không công khai counts/settings; `/menu` trả thêm Home ephemeral có counts từ DB. Nút Back từ module mở Home riêng, Refresh đọc lại số liệu.
+- Tasks/Projects/Calendar/Today có UI dữ liệu thật, module tương lai vẫn Sắp ra mắt. Không có demo records; empty-state có nút Thêm, số 0 chỉ hiện sau query DB thành công.
+- Project: modal tên/mô tả → bản nháp có deadline picker, status select → Lưu; archive có duyệt; detail có progress và Xem tasks/Thêm task gắn project.
+- Task: modal title/mô tả → bản nháp có deadline picker, priority/estimated_minutes select và chọn dự án → Lưu. Status qua select ở chi tiết, Hoàn thành/Mở lại, Đổi dự án bằng picker, Lên lịch gắn task. Khi sửa giữ field không đổi và expected version; không tự đổi events liên kết.
+- Calendar: modal chỉ nhập title → bản nháp chọn bắt đầu/kết thúc qua picker hoặc chọn thời lượng, chọn Cố định/Linh hoạt và task → Lưu. Không yêu cầu gõ datetime hay có/không. Tạo mới dùng confirmed sau conflict check, sửa confirmed hoặc hủy có duyệt.
+- Danh sách/picker 5 mục/trang. Tasks lọc status/priority/project/khoảng deadline, calendar lọc status. Back giữ parent route, Refresh lấy snapshot mới; panel riêng không sửa bảng neo.
+- Bộ chọn lịch dùng legacy Embed + View: lịch tháng dạng text, tháng trước/sau/Hôm nay, hai select ngày 01–16 và 17–cuối tháng (mỗi select tối đa 25 options), select giờ 00–23 và phút bước 5 phút. Chỉ nút Dùng ngày giờ cập nhật bản nháp; Quay lại bỏ lựa chọn. Bộ chọn ngày xem Calendar không có giờ/phút, thêm Ngày mai. Không dùng web frontend hoặc Components V2.
+- Deadline range có bản nháp Từ ngày/Đến hết ngày, xóa từng mốc, Hôm nay/7 ngày tới, Áp dụng/Quay lại; ngày cuối được bao gồm. Bản nháp không ghi DB; chỉ Lưu mới gọi service, vẫn qua confirmations khi cần.
+- Form thường chỉ tên/mô tả. Nhập ngày/giờ chính xác là đường tùy chọn cho phút bất kỳ/ngày xa; task cho nhập số phút khác trong cùng form này. Tối đa 4 TextInputs, hạn 5 phút hoặc sớm hơn nếu panel/bản nháp hết hạn. Nhập tay dùng YYYY-MM-DD HH:MM trong timezone Settings tại lúc mở form; không đoán ngày thiếu năm.
+- Bản nháp tối đa 10 phút, navigation không gia hạn. Dùng lock chung cho các bước của cùng bản nháp: không để modal/select đổi payload lúc Lưu đang chờ DB. Duplicate save giữ cùng intent/request_id; giữ field/seconds/microseconds không sửa. Mọi view mới kiểm tra owner, expiry và view còn hoạt động.
+- Confirmation gồm before/after và các lịch trùng, phân trang khi dài; Duyệt chỉ mở ở trang cuối, Bỏ qua không ghi. Backend kiểm tra owner, TTL, expected state và conflicts lại trước commit. Không hiển thị token, SQL hoặc ID nội bộ để người dùng phải tự nhập.
+- Token/panel hết hạn hoặc restart: mở lại từ bảng neo và duyệt lại. Form của view đã bị thay thế bị chặn. Retry giữ request_id, không tạo lặp; stale data phải Refresh.
+- Home counts: Tasks không cancelled, done thuộc tập này, Projects không archived, confirmed events giao ngày local. Today có tối đa 5 events và 5 task đến hạn/quá hạn hoặc ưu tiên cao, kèm tổng thật. Progress nêu rõ tỷ lệ task done / task không hủy theo số lượng.
+- Sau commit mới báo Đã lưu; nếu Discord render lỗi sau commit, báo rõ đã lưu và hướng dẫn mở lại, không chạy mutation lần nữa.
+
+Kiểm thử tự động **419 passed** sau rà soát UI chọn ngày/giờ; chưa nghiệm thu live Desktop/Mobile. File, giới hạn và checklist: [`PHASE_3C_VALIDATION.md`](PHASE_3C_VALIDATION.md).

@@ -45,7 +45,14 @@ class CalendarService(CoreService):
             return Page(tuple(to_record(EventRecord, row) for row in rows), total, page, page_size)
 
     async def list_day(
-        self, actor_id: int, day: date, *, timezone=DEFAULT_TIMEZONE, page=0, page_size=10
+        self,
+        actor_id: int,
+        day: date,
+        *,
+        timezone=DEFAULT_TIMEZONE,
+        status=None,
+        page=0,
+        page_size=10,
     ):
         self.authorize(actor_id)
         if type(day) is not date:
@@ -53,12 +60,20 @@ class CalendarService(CoreService):
         return await self.list(
             actor_id,
             *local_window(day, 1, timezone),
+            status=status,
             page=page,
             page_size=page_size,
         )
 
     async def list_week(
-        self, actor_id: int, day: date, *, timezone=DEFAULT_TIMEZONE, page=0, page_size=10
+        self,
+        actor_id: int,
+        day: date,
+        *,
+        timezone=DEFAULT_TIMEZONE,
+        status=None,
+        page=0,
+        page_size=10,
     ):
         self.authorize(actor_id)
         if type(day) is not date:
@@ -67,6 +82,7 @@ class CalendarService(CoreService):
         return await self.list(
             actor_id,
             *local_window(monday, 7, timezone),
+            status=status,
             page=page,
             page_size=page_size,
         )

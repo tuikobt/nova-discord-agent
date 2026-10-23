@@ -109,7 +109,9 @@ class MoreSelect(discord.ui.Select):
             max_values=1,
             options=[
                 discord.SelectOption(
-                    label=MODULES[screen].title, value=screen.value, description="Sắp ra mắt"
+                    label=MODULES[screen].title,
+                    value=screen.value,
+                    description="Mở module" if MODULES[screen].available else "Sắp ra mắt",
                 )
                 for screen in MORE_SCREENS
             ],

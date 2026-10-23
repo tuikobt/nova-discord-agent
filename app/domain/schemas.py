@@ -33,6 +33,8 @@ class DashboardOverview:
     tasks: int | None = None
     projects: int | None = None
     reminders: int | None = None
+    done_tasks: int | None = None
+    events_today: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
