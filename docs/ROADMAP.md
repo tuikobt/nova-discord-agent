@@ -9,7 +9,7 @@
 | P0 | Planning & Design | ✅ DONE (2026-10-23) | PRD, Architecture, Database, Discord UI, Agent Tools, Security, Roadmap, AGENTS, Handoff |
 | P1 | Foundation | ✅ DONE (2026-10-23) | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
 | P2 | Dashboard UI | ✅ DONE (2026-10-23) | buttons/select/modal, module views, settings shell, persistent view |
-| P3 | Core Management | ⬜ NOT STARTED | Tasks, Projects, Calendar (DB CRUD + conflicts) |
+| P3 | Core Management | 🟨 IN PROGRESS — 3A hoàn tất; 3B/3C chưa bắt đầu | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ⬜ NOT STARTED | reminders schedule, retry/delivery, DM/channel |
 | P5 | AI Agent | ⬜ NOT STARTED | natural-language DM + OpenAI tool calling + confirmations |
 | P6 | Memory & Proactive Automation | ⬜ NOT STARTED | memory controls, planner suggestions, morning/daily/weekly reports |
@@ -60,7 +60,7 @@
 
 ## 4. Phase 2 — Discord Dashboard UI ✅
 
-**Nghiệm thu 2026-10-23:** người dùng xác nhận “phase-2 Done” sau hướng dẫn kiểm tra Discord thực tế. Kết quả tự động từ phiên triển khai: **159 tests pass** cùng hồi quy Foundation, lint/format pass. Xác nhận thực tế do người dùng cung cấp; Codex không tự đăng nhập Discord để kiểm chứng lại. P2 **DONE**, P3 **NOT STARTED**. Báo cáo và checklist kiểm tra lại: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).
+**Nghiệm thu 2026-10-23:** người dùng xác nhận “phase-2 Done” sau hướng dẫn kiểm tra Discord thực tế. Kết quả tự động từ phiên triển khai: **159 tests pass** cùng hồi quy Foundation, lint/format pass. Xác nhận thực tế do người dùng cung cấp; Codex không tự đăng nhập Discord để kiểm chứng lại. P2 **DONE**; tiến độ P3 hiện tại ở mục bên dưới. Báo cáo và checklist kiểm tra lại: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).
 
 **Phạm vi/assumptions:** dùng lại schema P1, chỉ mở chỉnh timezone đã có storage; các settings automation/notification chỉ đọc. Dashboard neo đặt trong kênh riêng; runtime kiểm tra `@everyone`, owner chịu trách nhiệm các role/overwrites khác. Recovery message/channel bị xóa diễn ra khi owner gọi `/menu`, không tự gửi lúc startup. Chống trùng giới hạn một process SQLite và reconciliation 50 messages, không hứa atomic Discord/DB khi crash.
 
@@ -83,6 +83,16 @@
 **Ghi chú UX khi nghiệm thu:** bảng neo là message dùng chung; panel riêng tư là ephemeral theo phiên. Khi chuyển mobile/web, mở lại module từ bảng neo; Refresh đọc lại dữ liệu đã lưu. Không thay đổi thiết kế này trong lần chốt P2.
 
 ## 5. Phase 3 — Core Management
+
+**Checkpoint 2026-10-23:** chỉ triển khai **3A — Database & Migration**, đã hoàn tất với **250 tests pass**, gồm hồi quy P1/P2. Có backup `backups/pre-phase-3a-20261023.db`; đã kiểm tra migration/restore trên bản sao DB Phase 2 thực tế, không nâng cấp `nova.db` đang dùng. Báo cáo và runbook: [`PHASE_3A_VALIDATION.md`](PHASE_3A_VALIDATION.md). Handoff: [`PHASE_3_HANDOFF.md`](PHASE_3_HANDOFF.md).
+
+### Checkpoints
+
+- [x] **3A:** models Project/Task/CalendarEvent, relationships, FK/constraints/indexes, migration `0002_core_management`, UTC round-trip, backup/restore và tests.
+- [ ] **3B:** repositories owner-scoped, CRUD services, validation nghiệp vụ, progress, filters/pagination, overlap và stale/double submit handling.
+- [ ] **3C:** Discord CRUD UI, confirmations, counts thật, kiểm thử Desktop/Mobile và nghiệm thu toàn bộ P3.
+
+**Giới hạn/assumptions 3A:** FK ghép `(project_id, owner_id)` và `(task_id, owner_id)` chặn liên kết chéo owner; FK tới `users` không thay thế config allowlist ở services. Quan hệ dùng `RESTRICT`, không cascade xóa task/lịch. Event mặc định `proposed`, nguồn `manual`, task mặc định `todo/medium`. Có optimistic version ở ORM flush; bulk SQL cần expected-version check riêng ở 3B. Đồng bộ `completed_at`, xác nhận lịch trùng và idempotency thuộc 3B/3C. Các panel Discord giữ “Sắp ra mắt”; không mở CRUD chỉ vì đã có bảng. Dừng sau 3A.
 
 ### Work packages
 
@@ -193,3 +203,4 @@
 | 2026-10-23 | P0 | Tạo tài liệu đặc tả ban đầu, chốt zero-command Discord UX |
 | 2026-10-23 | P1 | Foundation hoàn thành; 65 tests pass, lint/format pass; người dùng xác nhận “Phase 1 DONE”; chưa bắt đầu P2 |
 | 2026-10-23 | P2 | Hoàn thành dashboard neo, module panels, Help/Settings, timezone modal, persistent View; 159 tests pass; người dùng xác nhận “phase-2 Done”; chưa bắt đầu P3 |
+| 2026-10-23 | P3A | Hoàn tất schema/migration Core Management; 250 tests pass; backup và thử upgrade/restore trên bản sao DB Phase 2; chưa migrate DB đang dùng, chưa bắt đầu 3B/3C |

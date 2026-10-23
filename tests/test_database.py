@@ -29,10 +29,18 @@ def test_migration_from_empty_database_is_idempotent_and_matches_models(settings
             await database.initialize()
             async with database.engine.connect() as connection:
                 tables = await connection.run_sync(lambda conn: inspect(conn).get_table_names())
-                assert set(tables) == {"users", "user_settings", "audit_logs", "alembic_version"}
+                assert set(tables) == {
+                    "users",
+                    "user_settings",
+                    "audit_logs",
+                    "alembic_version",
+                    "projects",
+                    "tasks",
+                    "calendar_events",
+                }
                 assert await connection.scalar(text("PRAGMA foreign_keys")) == 1
                 assert await connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                    "0001_foundation"
+                    "0002_core_management"
                 )
                 differences = await connection.run_sync(
                     lambda conn: compare_metadata(MigrationContext.configure(conn), Base.metadata)

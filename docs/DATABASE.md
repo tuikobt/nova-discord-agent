@@ -198,3 +198,18 @@ erDiagram
 ## 6. Ví dụ nghiệp vụ tính tiến độ dự án
 
 `project_progress = done_tasks / all_non_cancelled_tasks * 100%`, không có task trả `0%` và nhãn “Chưa có nhiệm vụ”. Đây là tỷ lệ theo **số lượng** chứ không phản ánh trọng số hay thời gian. Luôn nêu rõ cách tính trong báo cáo.
+
+## 7. Hiện thực Phase 3A
+
+- Revision `0002_core_management` nối tiếp `0001_foundation`, chỉ thêm `projects`, `tasks`, `calendar_events`; không rebuild/xóa bảng Foundation.
+- IDs do app sinh UUID dạng string. FK trực tiếp `owner_id → users.discord_user_id` trên cả ba bảng. UNIQUE `(id, owner_id)` ở projects/tasks làm đích FK ghép `tasks(project_id, owner_id) → projects(id, owner_id)` và `calendar_events(task_id, owner_id) → tasks(id, owner_id)`. Các liên kết tùy chọn vẫn cho phép NULL.
+- Tất cả quan hệ mới `ON DELETE RESTRICT`, không cascade hoặc tự gỡ liên kết khi xóa ORM. Relationship chỉ đồng bộ cột link, không tự đổi `owner_id`; truy vấn quan hệ xét cả owner. Async loading dùng `selectinload` rõ ràng.
+- CHECK cho enum lowercase, tên/title không rỗng và giới hạn 200/250 ký tự, thời lượng nguyên dương nếu có, version nguyên dương, end > start và boolean `is_fixed`. ORM cũng validate tên, enum, thời lượng, version và boolean; `UTCDateTime` từ P1 từ chối datetime thiếu timezone, lưu UTC và khôi phục UTC-aware khi đọc SQLite.
+- Indexes theo thiết kế ở mục 2; thêm `(task_id, owner_id)` trên calendar_events để hỗ trợ FK và tra cứu các block của một task.
+- Defaults: project `active`; task `todo`, priority `medium`; event `proposed`, origin `manual`, `is_fixed=false`; version `1`. Created/updated do ORM cấp UTC, không nhận thời gian local ngầm định. SQL trực tiếp phải cấp timestamps UTC đã chuẩn hóa.
+- `version_id_col` trên Task/CalendarEvent tăng version và chặn stale update/delete khi ORM flush; bulk SQL không tự có bảo vệ này. Quy tắc `completed_at`, overlap, confirmation và owner-scoped CRUD được làm ở 3B/3C, chưa có trong 3A. Enum có `agent`/`integration` theo schema, không kích hoạt tính năng đó.
+- Downgrade từ 0002 về 0001 chỉ cho phép khi ba bảng mới rỗng; từ chối offline downgrade vì không kiểm tra được dữ liệu. Không có `drop_all()` hoặc reset DB.
+
+Kết quả tests, database thực tế, migration và restore: [`PHASE_3A_VALIDATION.md`](PHASE_3A_VALIDATION.md).
+
+Tham chiếu kỹ thuật: [SQLite composite foreign keys](https://www.sqlite.org/foreignkeys.html#fk_composite), [SQLAlchemy overlapping foreign keys](https://docs.sqlalchemy.org/en/21/orm/join_conditions.html#overlapping-foreign-keys), [ORM version counter](https://docs.sqlalchemy.org/en/21/orm/versioning.html), [Python SQLite backup API](https://docs.python.org/3.12/library/sqlite3.html#sqlite3.Connection.backup).
