@@ -8,7 +8,7 @@
 |---|---|---|---|
 | P0 | Planning & Design | ✅ DONE (2026-10-23) | PRD, Architecture, Database, Discord UI, Agent Tools, Security, Roadmap, AGENTS, Handoff |
 | P1 | Foundation | ✅ DONE (2026-10-23) | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
-| P2 | Dashboard UI | 🟨 IN PROGRESS — source/tests ready, chờ Discord Desktop/Mobile | buttons/select/modal, module views, settings shell, persistent view |
+| P2 | Dashboard UI | ✅ DONE (2026-10-23) | buttons/select/modal, module views, settings shell, persistent view |
 | P3 | Core Management | ⬜ NOT STARTED | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ⬜ NOT STARTED | reminders schedule, retry/delivery, DM/channel |
 | P5 | AI Agent | ⬜ NOT STARTED | natural-language DM + OpenAI tool calling + confirmations |
@@ -58,9 +58,9 @@
 
 **Nghiệm thu:** ngày 2026-10-23, người dùng xác nhận “Phase 1 DONE” sau checklist kiểm tra Discord thực tế. Kết quả tự động từ phiên triển khai: **65 tests pass**, lint/format pass. Xác nhận live do người dùng cung cấp; Codex không tự đăng nhập Discord để kiểm chứng lại. Chi tiết lịch sử tại [`PHASE_1_VALIDATION.md`](PHASE_1_VALIDATION.md). Tiến độ P2 theo mục bên dưới.
 
-## 4. Phase 2 — Discord Dashboard UI
+## 4. Phase 2 — Discord Dashboard UI ✅
 
-**Tiến độ 2026-10-23:** source đã triển khai; **159 tests pass** cùng hồi quy Foundation, lint/format pass. Chưa chạy Discord Desktop/Mobile thực tế, chưa đánh dấu P2 DONE và chưa bắt đầu P3. Báo cáo và checklist manual: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).
+**Nghiệm thu 2026-10-23:** người dùng xác nhận “phase-2 Done” sau hướng dẫn kiểm tra Discord thực tế. Kết quả tự động từ phiên triển khai: **159 tests pass** cùng hồi quy Foundation, lint/format pass. Xác nhận thực tế do người dùng cung cấp; Codex không tự đăng nhập Discord để kiểm chứng lại. P2 **DONE**, P3 **NOT STARTED**. Báo cáo và checklist kiểm tra lại: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).
 
 **Phạm vi/assumptions:** dùng lại schema P1, chỉ mở chỉnh timezone đã có storage; các settings automation/notification chỉ đọc. Dashboard neo đặt trong kênh riêng; runtime kiểm tra `@everyone`, owner chịu trách nhiệm các role/overwrites khác. Recovery message/channel bị xóa diễn ra khi owner gọi `/menu`, không tự gửi lúc startup. Chống trùng giới hạn một process SQLite và reconciliation 50 messages, không hứa atomic Discord/DB khi crash.
 
@@ -74,11 +74,13 @@
 
 ### Acceptance P2
 
-- [ ] `/menu` có thể mở module/chọn nút trên mobile và desktop.
-- [ ] Owner-only enforced trên mọi button/select/modal.
-- [ ] Persistent dashboard hoạt động sau restart.
-- [ ] Nội dung chưa hoàn thiện ghi “Sắp ra mắt”; không báo đã tạo dữ liệu giả.
-- [ ] Chế độ lỗi/hết hạn interaction được xử lý rõ ràng.
+- [x] `/menu` có thể mở module/chọn nút trên mobile và desktop.
+- [x] Owner-only enforced trên mọi button/select/modal.
+- [x] Persistent dashboard hoạt động sau restart.
+- [x] Nội dung chưa hoàn thiện ghi “Sắp ra mắt”; không báo đã tạo dữ liệu giả.
+- [x] Chế độ lỗi/hết hạn interaction được xử lý rõ ràng.
+
+**Ghi chú UX khi nghiệm thu:** bảng neo là message dùng chung; panel riêng tư là ephemeral theo phiên. Khi chuyển mobile/web, mở lại module từ bảng neo; Refresh đọc lại dữ liệu đã lưu. Không thay đổi thiết kế này trong lần chốt P2.
 
 ## 5. Phase 3 — Core Management
 
@@ -190,4 +192,4 @@
 |---|---|---|
 | 2026-10-23 | P0 | Tạo tài liệu đặc tả ban đầu, chốt zero-command Discord UX |
 | 2026-10-23 | P1 | Foundation hoàn thành; 65 tests pass, lint/format pass; người dùng xác nhận “Phase 1 DONE”; chưa bắt đầu P2 |
-| 2026-10-23 | P2 | Triển khai dashboard neo, module panels, Help/Settings, timezone modal, persistent View; 159 tests pass; chờ nghiệm thu Discord Desktop/Mobile |
+| 2026-10-23 | P2 | Hoàn thành dashboard neo, module panels, Help/Settings, timezone modal, persistent View; 159 tests pass; người dùng xác nhận “phase-2 Done”; chưa bắt đầu P3 |

@@ -1,6 +1,6 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái:** Phase 1 **DONE** theo xác nhận của người dùng. Source Phase 2 (Discord Dashboard UI) đã triển khai, **159 tests pass**; chờ kiểm tra Discord Desktop/Mobile trước khi đánh dấu P2 DONE. Chưa triển khai Phase 3.
+> **Trạng thái:** Phase 1 và Phase 2 **DONE** theo xác nhận của người dùng; Phase 2 được chốt ngày **2026-10-23**. Kết quả tự động từ phiên triển khai: **159 tests pass**. Phase 3 chưa bắt đầu.
 >
 > **Cập nhật:** 2026-10-23 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
 
@@ -31,7 +31,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 | Module | Thời điểm xây | Trạng thái |
 |---|---|---|
 | Discord Bot, owner-only access, `/ping`, `/menu`, DB bootstrap | Phase 1 | ✅ DONE — người dùng xác nhận 2026-10-23 |
-| Dashboard neo, buttons/select/modal, Help, Settings | Phase 2 | Source + tests hoàn tất; chờ nghiệm thu Discord Desktop/Mobile |
+| Dashboard neo, buttons/select/modal, Help, Settings | Phase 2 | ✅ DONE — người dùng xác nhận 2026-10-23 |
 | Tasks, Projects, Calendar | Phase 3 | Chưa bắt đầu |
 | Reminders tự động | Phase 4 | Chưa bắt đầu |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | Chưa bắt đầu |
@@ -151,6 +151,7 @@ Máy mới cần Python 3.12+, tạo venv và cài `requirements-dev.txt`. Khôn
 - Chưa có backend task/project/reminder/calendar: hiển thị **Chưa có dữ liệu** hoặc **Sắp ra mắt**, không hiển thị số 0 như thống kê đã đo.
 - Settings đọc language, timezone, giờ briefing/review, notification preference từ DB. Chỉ **Sửa Timezone** được ghi thật; ví dụ `Asia/Ho_Chi_Minh` hoặc `UTC`. Language/automation/notification chưa mở chức năng sửa.
 - Panel riêng tư có thời hạn 10 phút; điều hướng thay panel và làm mới phiên. Modal có thời hạn 5 phút. Bảng neo không có timeout, các nút được đăng ký lại sau restart.
+- Khi chuyển giữa mobile và web, mở lại module từ bảng neo để có panel riêng trên thiết bị đang dùng. Settings đã lưu dùng chung database; Refresh đọc lại giá trị mới.
 
 Hướng dẫn kiểm tra từng nút, tài khoản khác và restart nằm trong [báo cáo Phase 2](docs/PHASE_2_VALIDATION.md).
 
@@ -175,7 +176,7 @@ Giữ nguyên `DATABASE_URL` và file database khi restart. Dừng bot trước 
 .\.venv\Scripts\python.exe -m ruff format --check .
 ```
 
-Đã kiểm thử trên Linux với **Python 3.12.15: 159 passed**; lint/format pass. Tests dùng SQLite file tạm và mock Discord, chặn kết nối mạng. Bao gồm hồi quy Foundation, rendering, điều hướng, quyền button/select/modal, settings, pagination, timeout, lỗi, chống trùng dashboard và khôi phục nút sau khi tạo client mới trên cùng SQLite. Codex chưa kiểm tra Discord Desktop/Mobile hoặc PowerShell trên Windows trong phiên Phase 2. Xem [báo cáo Phase 2](docs/PHASE_2_VALIDATION.md); [báo cáo Phase 1](docs/PHASE_1_VALIDATION.md) lưu kết quả lịch sử lúc chốt Foundation.
+Đã kiểm thử trên Linux với **Python 3.12.15: 159 passed**; lint/format pass. Tests dùng SQLite file tạm và mock Discord, chặn kết nối mạng. Bao gồm hồi quy Foundation, rendering, điều hướng, quyền button/select/modal, settings, pagination, timeout, lỗi, chống trùng dashboard và khôi phục nút sau khi tạo client mới trên cùng SQLite. Người dùng xác nhận nghiệm thu Phase 2 ngày 2026-10-23; Codex không tự đăng nhập Discord để kiểm chứng lại hoặc chạy PowerShell trên Windows. Lần chốt nghiệm thu chỉ sửa tài liệu, không chạy lại bộ tests. Xem [báo cáo Phase 2](docs/PHASE_2_VALIDATION.md); [báo cáo Phase 1](docs/PHASE_1_VALIDATION.md) lưu kết quả lịch sử lúc chốt Foundation.
 
 ## Kiểm tra hồi quy Foundation
 
@@ -185,7 +186,7 @@ Người dùng đã xác nhận “Phase 1 DONE” ngày 2026-10-23. Giữ check
 2. Chạy `/menu`, kiểm tra dashboard có các module và trạng thái rõ ràng, không có số liệu giả; panel của owner vẫn là ephemeral.
 3. Dùng tài khoản khác chạy `/ping`, `/menu`: chỉ nhận thông báo không có quyền. Nhắn DM từ tài khoản đó: không được phục vụ. DM từ owner: chỉ có hướng dẫn.
 4. Dừng rồi chạy lại bot, kiểm tra `/ping`, `/menu` và `alembic current` vẫn là `0001_foundation`, file DB vẫn còn. Persistence của owner/settings đã có integration test riêng.
-5. Ghi nhận kết quả thực tế khi kiểm tra lại. P1 đã nghiệm thu; P2 hiện chờ checklist Desktop/Mobile trong báo cáo Phase 2, chưa chuyển P3.
+5. Ghi nhận kết quả thực tế khi kiểm tra lại. P1 và P2 đã nghiệm thu theo xác nhận của người dùng; P3 chưa bắt đầu.
 
 ## Xử lý lỗi thường gặp
 
