@@ -7,6 +7,7 @@ from app.config import Settings
 from app.db.session import Database
 from app.discord_bot.checks import OwnerCommandTree
 from app.discord_bot.commands.foundation import FoundationCommands
+from app.discord_bot.dashboard_controller import DashboardController
 from app.domain.authorization import OwnerAuthorization
 from app.services.settings_service import SettingsService
 
@@ -23,13 +24,15 @@ class NovaClient(discord.Client):
         self.database = database
         self.authorization = OwnerAuthorization(settings.owner_id)
         self.tree = OwnerCommandTree(self, self.authorization)
-        self.foundation = FoundationCommands(self.authorization)
-        self.foundation.register(self.tree)
         self.settings_service = SettingsService(database.sessions, self.authorization)
+        self.dashboard = DashboardController(self, self.authorization, self.settings_service)
+        self.foundation = FoundationCommands(self.authorization, self.dashboard)
+        self.foundation.register(self.tree)
 
     async def setup_hook(self) -> None:
         await self.database.initialize()
         await self.settings_service.initialize_owner(self.settings.owner_id, self.settings.timezone)
+        await self.dashboard.restore()
         if self.settings.guild_id is not None:
             guild = discord.Object(id=self.settings.guild_id)
             self.tree.copy_global_to(guild=guild)
@@ -55,7 +58,7 @@ class NovaClient(discord.Client):
         # No reading, logging, or persisting message.content in Foundation.
         try:
             await message.channel.send(
-                "NOVA đang ở Phase 1. Dùng /menu trong server để mở dashboard. "
+                "Dùng /menu trong server để mở dashboard hoặc /help để xem hướng dẫn. "
                 "AI Assistant: Sắp ra mắt.",
                 allowed_mentions=discord.AllowedMentions.none(),
             )

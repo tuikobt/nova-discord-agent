@@ -1,7 +1,7 @@
 [project]
 name = "nova-discord-agent"
 version = "0.1.0"
-description = "NOVA Discord personal assistant — Phase 1 Foundation"
+description = "NOVA Discord personal assistant — Foundation and Dashboard UI"
 requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
