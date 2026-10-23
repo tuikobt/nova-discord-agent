@@ -1,6 +1,8 @@
 # Phase 2 — Discord Dashboard UI: triển khai và kiểm thử
 
-Ngày: **2026-10-23**. Phase 1 đã được người dùng xác nhận DONE. Phase 2 đã hoàn tất source và kiểm thử tự động, **chưa nghiệm thu Discord Desktop/Mobile**; không đánh dấu DONE và không triển khai Phase 3.
+Ngày: **2026-10-23**. **Phase 2 — DONE** theo xác nhận “phase-2 Done” của người dùng. Kết quả tự động từ phiên triển khai: **159 tests pass**, lint/format pass. Phase 1 đã DONE; Phase 3 chưa bắt đầu.
+
+Xác nhận nghiệm thu thực tế do người dùng cung cấp sau checklist Discord; Codex không tự đăng nhập Discord để kiểm chứng lại. Lần chốt nghiệm thu chỉ cập nhật README, ROADMAP, Discord UI và báo cáo này; không sửa source hoặc chạy lại bộ tests.
 
 ## Kết quả và phạm vi
 
@@ -23,7 +25,7 @@ Bảng neo không chứa timezone/locale/settings riêng tư. Home/Today trong p
 
 ## Kết quả kiểm thử tự động
 
-Môi trường: Linux, **Python 3.12.15**, venv hiện có. Mốc trước triển khai: **65 passed in 2.23s**. Bộ cuối sau Phase 2:
+Kết quả từ phiên triển khai: Linux, **Python 3.12.15**, venv hiện có. Mốc trước triển khai: **65 passed in 2.23s**. Bộ cuối sau Phase 2:
 
 | Lệnh | Kết quả |
 |---|---|
@@ -55,7 +57,11 @@ Dashboard location cố định: gọi `/menu` ở kênh khác trả link về b
 
 Discord send và DB commit không atomic: lock + message pending + tìm marker trong 50 message gần nhất giảm trùng khi retry/crash. Nếu orphan nằm ngoài cửa sổ đó vẫn có thể cần owner xử lý thủ công; không tự xóa message. Panel ephemeral cũ không được restore sau restart; mở panel mới từ bảng neo. Timeout disable message là best effort nếu token đã bị Discord từ chối.
 
+Ghi chú đã giải thích khi nghiệm thu: bảng neo là tin nhắn dùng chung, còn panel riêng tư là ephemeral theo phiên. Khi chuyển mobile/web, mở lại module từ bảng neo trên thiết bị đang dùng. Settings đã lưu vẫn dùng chung SQLite; Refresh đọc lại dữ liệu mới. Lần chốt nghiệm thu giữ nguyên thiết kế này.
+
 ## Chạy và kiểm tra trên Discord
+
+Checklist đã được người dùng xác nhận qua nghiệm thu Phase 2 ngày 2026-10-23; giữ lại để kiểm tra hồi quy khi thay đổi cấu hình hoặc môi trường.
 
 1. Nếu bot cũ đang chạy, `Ctrl+C` để dừng. Giữ nguyên `.env` và SQLite. Trên máy Linux hiện tại chạy:
 
@@ -94,19 +100,19 @@ Discord send và DB commit không atomic: lock + message pending + tìm marker t
 6. Kiểm tra tài khoản không phải owner: slash commands bị từ chối; trong kênh thử nghiệm được owner cấp quyền xem, button/select đều phải từ chối và không lộ settings. Các trường hợp modal được unit test trực tiếp, không chia sẻ token hoặc dữ liệu riêng tư để thử.
 7. Chờ một panel hết hạn 10 phút: controls bị disable và có hướng dẫn mở lại; mở panel mới từ bảng neo. Modal hết hạn sau 5 phút, không lưu dữ liệu.
 8. Owner chủ động xóa dashboard test rồi `/menu`: bot phục hồi một message mới. Nếu đổi quyền khiến bot không đọc được bảng cũ, `/menu` báo lỗi và không tạo thêm bảng.
-9. Ghi kết quả Desktop/Mobile, owner/non-owner, modal/refresh và restart trước khi chốt P2 DONE. Không cần gửi token vào chat.
+9. Ghi kết quả Desktop/Mobile, owner/non-owner, modal/refresh và restart khi kiểm tra lại. P2 đã DONE theo xác nhận của người dùng; không cần gửi token vào chat.
 
 ## Đối chiếu nghiệm thu Phase 2
 
 | Acceptance | Tự động | Kiểm tra thực tế |
 |---|---|---|
-| `/menu` mở module trên mobile và desktop | Rendering/routes/select/buttons pass | **Chưa kiểm tra Desktop/Mobile** |
-| Owner-only trên button/select/modal | Dispatch + callback/service tests pass | **Chờ tài khoản khác thử** |
-| Persistent dashboard sau restart | SQLite + hai client + restored callback pass | **Chờ restart Discord thật** |
-| Chưa có backend ghi Sắp ra mắt, không fake data | Availability/rendering tests pass | **Chờ đối chiếu giao diện** |
-| Error/hết hạn interaction rõ ràng | DB/HTTP/modal/panel timeout tests pass | **Chờ thao tác thực tế** |
+| `/menu` mở module trên mobile và desktop | Rendering/routes/select/buttons pass | **Đạt theo xác nhận nghiệm thu của người dùng** |
+| Owner-only trên button/select/modal | Dispatch + callback/service tests pass | **Đạt theo xác nhận nghiệm thu của người dùng** |
+| Persistent dashboard sau restart | SQLite + hai client + restored callback pass | **Đạt theo xác nhận nghiệm thu của người dùng** |
+| Chưa có backend ghi Sắp ra mắt, không fake data | Availability/rendering tests pass | **Đạt theo xác nhận nghiệm thu của người dùng** |
+| Error/hết hạn interaction rõ ràng | DB/HTTP/modal/panel timeout tests pass | **Đạt theo xác nhận nghiệm thu của người dùng** |
 
-**P2 chưa DONE** cho tới khi các mục manual được xác nhận. P3 vẫn NOT STARTED.
+**P2 DONE (2026-10-23)** theo kết quả tự động và xác nhận nghiệm thu của người dùng. P3 vẫn **NOT STARTED**.
 
 ## File tạo mới và sửa trong Phase 2
 

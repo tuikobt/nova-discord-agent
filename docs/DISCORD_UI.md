@@ -119,23 +119,26 @@ DM “Mai nhắc tôi làm bài” → NOVA hỏi “Bạn muốn được nhắ
 
 ## 8. Tiêu chí nghiệm thu dashboard (P2)
 
-- [ ] `/menu` hiện overview chính xác, không có dữ liệu demo giả.
-- [ ] Buttons/Select điều hướng tới các panel tương ứng.
-- [ ] Module chưa triển khai ghi “Sắp ra mắt”, không hiện thông tin lỗi ẩn.
-- [ ] `Back`, `Refresh`, `Help`, `Settings` hoạt động.
-- [ ] Không có thông tin riêng tư hiển thị cho tài khoản không phải owner.
-- [ ] Dashboard còn tương tác được sau restart bot.
-- [ ] Không có lỗi “interaction failed” khi thao tác đúng.
-- [ ] Có UX kiểm tra được trên mobile và desktop Discord.
+- [x] `/menu` hiện overview chính xác, không có dữ liệu demo giả.
+- [x] Buttons/Select điều hướng tới các panel tương ứng.
+- [x] Module chưa triển khai ghi “Sắp ra mắt”, không hiện thông tin lỗi ẩn.
+- [x] `Back`, `Refresh`, `Help`, `Settings` hoạt động.
+- [x] Không có thông tin riêng tư hiển thị cho tài khoản không phải owner.
+- [x] Dashboard còn tương tác được sau restart bot.
+- [x] Không có lỗi “interaction failed” khi thao tác đúng.
+- [x] Có UX kiểm tra được trên mobile và desktop Discord.
+
+Nghiệm thu ngày 2026-10-23 theo xác nhận “phase-2 Done” của người dùng và kết quả tự động **159 tests pass** từ phiên triển khai. Codex không tự đăng nhập Discord để kiểm chứng lại.
 
 ## 9. Triển khai Phase 2 hiện tại
 
-Source P2 đã triển khai và kiểm thử tự động; kiểm tra hiển thị và thao tác trên Discord Desktop/Mobile còn chờ nghiệm thu. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend.
+P2 **DONE** theo xác nhận của người dùng ngày 2026-10-23. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend. P3 chưa bắt đầu.
 
 - `/menu` trong server tạo hoặc tái sử dụng một dashboard neo. `dashboard_channel_id` và `dashboard_message_id` dùng các cột sẵn có trong `user_settings`; không có migration schema mới.
 - Bảng neo chỉ chứa UI và trạng thái chưa có dữ liệu, không chứa settings riêng tư. Ngày hiện tại được tính từ timezone đã lưu khi mở Home/Today riêng tư. Các bộ đếm không có backend hiển thị “Chưa có dữ liệu”.
 - Dashboard có Today, Tasks, Projects, Reminders, AI Assistant chia hai hàng 3+2 để dễ đọc trên mobile; select có Calendar, Goals, Finance, Habits, Notes, Memory, Reports. Có Help/Settings/Refresh; thêm slash `/help`, `/settings` làm shortcut.
 - Mỗi click từ dashboard tạo panel ephemeral. Điều hướng/Back/Refresh trong panel sửa đúng panel đó; chỉ Refresh trên bảng neo mới sửa bảng neo. Mỗi panel là một View riêng; không có biến screen/page dùng chung.
+- Khi chuyển mobile/web, mở lại module từ bảng neo để có panel trên thiết bị đang dùng. Các panel riêng tư không dùng làm lịch sử chung; Settings đã lưu dùng chung database, Refresh đọc lại giá trị mới.
 - Settings đọc dữ liệu thật. Modal chỉ sửa timezone IANA đã có storage/service; language và notification preferences chỉ đọc, briefing/review luôn ghi “Chưa kích hoạt”. Không có automation hoặc CRUD.
 - Danh sách tính năng có phân trang 4 mục; Previous/Next chỉ xuất hiện khi có nhiều trang. Chưa hiển thị danh sách task/lịch giả.
 - `timeout=None`, custom IDs phiên bản `nova:dashboard:v1:...` và `add_view` trong startup giữ nút bảng neo sau restart. Panel riêng tư hết hạn 10 phút, modal 5 phút; panel cũ bị stop khi thay mới để tránh timeout ghi đè màn hình mới.
