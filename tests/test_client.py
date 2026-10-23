@@ -16,13 +16,19 @@ def test_startup_bootstraps_before_sync_once_and_closes_resources(settings, guil
     async def scenario():
         database = Database(settings.database_url)
         client = NovaClient(replace(settings, guild_id=guild_id), database)
-        assert {command.name for command in client.tree.get_commands()} == {"ping", "menu"}
+        assert {command.name for command in client.tree.get_commands()} == {
+            "ping",
+            "menu",
+            "help",
+            "settings",
+        }
         assert not client.intents.message_content
         assert not client.intents.members
         assert not client.intents.presences
         with (
             patch.object(database, "initialize", new=AsyncMock()) as initialize,
             patch.object(client.settings_service, "initialize_owner", new=AsyncMock()) as bootstrap,
+            patch.object(client.dashboard, "restore", new=AsyncMock()) as restore,
             patch.object(client.tree, "sync", new=AsyncMock(return_value=[None, None])) as sync,
             patch.object(database, "close", wraps=database.close) as close,
         ):
@@ -30,6 +36,7 @@ def test_startup_bootstraps_before_sync_once_and_closes_resources(settings, guil
             async def verify_bootstrap_before_sync(**kwargs):
                 initialize.assert_awaited_once()
                 bootstrap.assert_awaited_once_with(settings.owner_id, settings.timezone)
+                restore.assert_awaited_once()
                 return [None, None]
 
             sync.side_effect = verify_bootstrap_before_sync
@@ -79,6 +86,8 @@ def test_client_bootstrap_with_real_database_and_mocked_discord_sync(settings):
 
             with patch.object(client.tree, "sync", side_effect=verify_persisted_owner):
                 await client.setup_hook()
+                assert len(client.persistent_views) == 1
+                assert client.persistent_views[0].is_persistent()
         finally:
             await client.close()
 

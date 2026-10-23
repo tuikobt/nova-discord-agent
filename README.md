@@ -1,6 +1,6 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái:** Phase 1 (Foundation) **DONE**, người dùng xác nhận nghiệm thu ngày **2026-10-23**. Kết quả tự động từ phiên triển khai: **65 tests pass**. Phase 2 chưa bắt đầu.
+> **Trạng thái:** Phase 1 **DONE** theo xác nhận của người dùng. Source Phase 2 (Discord Dashboard UI) đã triển khai, **159 tests pass**; chờ kiểm tra Discord Desktop/Mobile trước khi đánh dấu P2 DONE. Chưa triển khai Phase 3.
 >
 > **Cập nhật:** 2026-10-23 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
 
@@ -23,6 +23,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 | 7 | [`docs/SECURITY.md`](docs/SECURITY.md) | Token, dữ liệu riêng tư, phân quyền và sao lưu |
 | 8 | [`docs/PHASE_1_HANDOFF.md`](docs/PHASE_1_HANDOFF.md) | Hướng dẫn tiếp tục Phase 1 bằng Codex CLI |
 | 9 | [`docs/PHASE_1_VALIDATION.md`](docs/PHASE_1_VALIDATION.md) | Kết quả tests, đối chiếu nghiệm thu và danh sách file Phase 1 |
+| 10 | [`docs/PHASE_2_VALIDATION.md`](docs/PHASE_2_VALIDATION.md) | Dashboard Phase 2, kết quả tests, file thay đổi và checklist kiểm tra từng nút |
 | — | [`AGENTS.md`](AGENTS.md) | Quy ước bắt buộc dành cho Codex/AI lập trình |
 
 ## Trạng thái module
@@ -30,14 +31,14 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 | Module | Thời điểm xây | Trạng thái |
 |---|---|---|
 | Discord Bot, owner-only access, `/ping`, `/menu`, DB bootstrap | Phase 1 | ✅ DONE — người dùng xác nhận 2026-10-23 |
-| Dashboard, menu, button, modal, settings shell | Phase 2 | Chưa bắt đầu |
+| Dashboard neo, buttons/select/modal, Help, Settings | Phase 2 | Source + tests hoàn tất; chờ nghiệm thu Discord Desktop/Mobile |
 | Tasks, Projects, Calendar | Phase 3 | Chưa bắt đầu |
 | Reminders tự động | Phase 4 | Chưa bắt đầu |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | Chưa bắt đầu |
 | Memory, planner thông minh, daily/weekly reports | Phase 6 | Chưa bắt đầu |
 | Goals, Finance, Habits, Notes, integrations, deploy | Phase 7+ | Chưa bắt đầu |
 
-## Cấu trúc source Phase 1
+## Cấu trúc source hiện tại
 
 ```text
 nova-discord-agent/
@@ -47,17 +48,20 @@ nova-discord-agent/
 │   ├── logging_config.py        # JSON metadata, che token, không log raw content
 │   ├── discord_bot/
 │   │   ├── client.py            # intents, events, setup_hook, slash sync
+│   │   ├── dashboard_controller.py # điều phối các panel riêng tư
+│   │   ├── dashboard_publisher.py  # tái sử dụng/ghim dashboard neo
 │   │   ├── checks.py            # owner guard cho tree và callbacks
 │   │   ├── error_handlers.py
 │   │   ├── commands/foundation.py
+│   │   ├── views/dashboard.py   # persistent View, panels, select, timezone modal
 │   │   └── renderers/dashboard.py
-│   ├── domain/authorization.py
-│   ├── services/settings_service.py
+│   ├── domain/                  # authorization, module catalogue, view models, pagination
+│   ├── services/                # settings_service, dashboard_service
 │   └── db/
 │       ├── base.py              # UTC-aware application timestamps
 │       ├── models.py            # users, user_settings, audit_logs skeleton
 │       ├── session.py           # async engine, transactions, PRAGMA, migrations
-│       └── repositories/user_repository.py
+│       └── repositories/        # user_repository, settings_repository
 ├── alembic/                    # migration foundation có upgrade/downgrade
 ├── tests/                      # mock Discord, SQLite file tạm, chặn network
 ├── docs/
@@ -71,15 +75,15 @@ nova-discord-agent/
 └── README.md
 ```
 
-Các thư mục views, scheduler, agent và module nghiệp vụ sẽ được tạo ở phase tương ứng. Phase 1 chỉ có Embed shell; chưa có button/select/modal, pinned dashboard, `/help` hoặc `/settings`.
+Phase 2 dùng legacy Embed + View: có buttons/select, panel riêng tư, modal timezone, `/help` và `/settings`. Scheduler, AI và CRUD module vẫn thuộc phase sau. Không thay đổi dependencies hoặc schema Phase 1; dùng lại các cột settings và dashboard location đã có.
 
 ## Chuẩn bị Discord
 
 1. Tạo application trong [Discord Developer Portal](https://discord.com/developers/applications), vào **Bot** để lấy/reset bot token. Điền token trực tiếp vào `.env` trên máy; không đưa vào chat, source hay Git. Xem [hướng dẫn tạo bot của discord.py](https://discordpy.readthedocs.io/en/stable/discord.html).
-2. Mời bot vào server riêng với scopes `bot` và `applications.commands`. Cấp View Channels, Send Messages, Read Message History, Embed Links cho kênh dùng bot; owner cần quyền Use Application Commands. Không cần Administrator. Tham khảo [Discord installation setup](https://docs.discord.com/developers/quick-start/getting-started).
+2. Mời bot vào server riêng với scopes `bot` và `applications.commands`. Cấp View Channels, Send Messages, Read Message History, Embed Links và **Pin Messages** cho kênh dashboard; owner cần quyền Use Application Commands. Không cần Administrator. Tham khảo [Discord installation setup](https://docs.discord.com/developers/quick-start/getting-started) và [quyền ghim tin nhắn](https://discordpy.readthedocs.io/en/stable/interactions/api.html#discord.InteractionMessage.pin).
 3. Bật Developer Mode trong Discord, dùng **Copy User ID** của tài khoản owner cho `DISCORD_OWNER_ID`. Đây là user ID, không phải bot/application ID. Có thể copy server ID cho biến `DISCORD_GUILD_ID` tùy chọn.
-4. Phase 1 chỉ bật intents `guilds` và `dm_messages`; để các privileged intents Message Content, Server Members, Presence tắt. Bot dùng Gateway, không yêu cầu Interactions Endpoint URL hay web server.
-5. Giữ các kênh NOVA private cho owner/bot. Owner guard trong code vẫn áp dụng cho từng slash command, callback của command và DM.
+4. Bot chỉ bật intents `guilds` và `dm_messages`; để các privileged intents Message Content, Server Members, Presence tắt. Bot dùng Gateway, không yêu cầu Interactions Endpoint URL hay web server.
+5. Tạo kênh văn bản riêng như `#nova-dashboard`: tắt **View Channel** cho `@everyone`, chỉ cho owner/bot xem. Kiểm tra cả các role/overwrites khác; bot kiểm tra quyền `@everyone`, không thay thế việc cấu hình quyền server. Owner guard vẫn kiểm tra mỗi slash command, button, select, modal và DM.
 
 ## Cài và chạy trên Windows PowerShell
 
@@ -115,7 +119,7 @@ DISCORD_GUILD_ID=
 | `LOG_LEVEL` | `INFO`, `WARNING`, `ERROR`, `CRITICAL`; mặc định `INFO` |
 | `DISCORD_GUILD_ID` | Tùy chọn: đăng ký lệnh cho server riêng để kiểm thử; để trống thì sync global |
 
-Biến môi trường của process ưu tiên hơn `.env`. Không cần OpenAI key. Settings đã lưu trong DB không bị ghi đè khi restart hay khi đổi `TIMEZONE` trong `.env`; UI sửa settings thuộc phase sau.
+Biến môi trường của process ưu tiên hơn `.env`. Không cần OpenAI key. Settings đã lưu trong DB không bị ghi đè khi restart hay khi đổi `TIMEZONE` trong `.env`; đổi múi giờ đang dùng bằng **Settings → Sửa Timezone**. Các cài đặt automation vẫn chỉ đọc và ghi rõ “Chưa kích hoạt”.
 
 ```powershell
 # Tùy chọn: tạo schema trước khi kết nối Discord; không cần token để chạy migration
@@ -127,7 +131,28 @@ Biến môi trường của process ưu tiên hơn `.env`. Không cần OpenAI k
 
 Khi kết nối thành công, log JSON có event `slash_commands_registered`, sau đó `bot_online`. Dừng bằng `Ctrl+C`. Bot bật reconnect khi mất Gateway và đóng async engine khi thoát.
 
-Trong server, `/ping` trả `Pong! NOVA đang online.`; `/menu` mở Embed **NOVA — PERSONAL CONTROL CENTER** với đủ 11 module, tất cả ghi **Sắp ra mắt**. Các phản hồi là ephemeral. Chưa có số liệu task/lịch hay dữ liệu demo. DM của owner chỉ nhận hướng dẫn Phase 1; DM từ tài khoản khác bị bỏ qua, nội dung không được đọc hoặc lưu.
+Trong server, `/ping` trả `Pong! NOVA đang online.`; lần đầu `/menu` tạo và ghim **NOVA — PERSONAL CONTROL CENTER** trong kênh riêng, lưu message/channel ID vào DB và trả link ephemeral. Các lần sau dùng lại bảng đó, kể cả gọi từ kênh khác. Button/select mở panel ephemeral, không ghi đè bảng neo. `/menu` trong DM mở Home riêng, không tạo dashboard server. DM thường của owner chỉ nhận hướng dẫn; DM từ tài khoản khác bị bỏ qua, nội dung không được đọc hoặc lưu.
+
+## Chạy lại trên Linux sau khi nâng cấp Phase 2
+
+Nếu bot Phase 1 đang chạy, nhấn `Ctrl+C` trước. Dùng venv hiện có, giữ nguyên `.env` và database:
+
+```bash
+.venv/bin/python -m app.main
+```
+
+Máy mới cần Python 3.12+, tạo venv và cài `requirements-dev.txt`. Không cần thêm biến môi trường hay dependencies cho Phase 2. Startup tự đăng ký persistent View; không tự gửi dashboard mới. Mở `/menu` trong kênh riêng để tạo bảng đầu tiên hoặc phục hồi bảng đã bị xóa.
+
+## Dùng Dashboard trong Discord
+
+- Nút nhanh: **Today**, **Tasks**, **Projects**, **Reminders**, **AI Assistant**.
+- Select **Các module khác…**: Calendar, Goals, Finance, Habits, Notes, Memory, Reports.
+- **Help**, **Settings**, **Refresh** nằm trên dashboard. Mỗi panel module có **Back** và **Refresh**; danh sách tính năng dài có **Previous/Next**.
+- Chưa có backend task/project/reminder/calendar: hiển thị **Chưa có dữ liệu** hoặc **Sắp ra mắt**, không hiển thị số 0 như thống kê đã đo.
+- Settings đọc language, timezone, giờ briefing/review, notification preference từ DB. Chỉ **Sửa Timezone** được ghi thật; ví dụ `Asia/Ho_Chi_Minh` hoặc `UTC`. Language/automation/notification chưa mở chức năng sửa.
+- Panel riêng tư có thời hạn 10 phút; điều hướng thay panel và làm mới phiên. Modal có thời hạn 5 phút. Bảng neo không có timeout, các nút được đăng ký lại sau restart.
+
+Hướng dẫn kiểm tra từng nút, tài khoản khác và restart nằm trong [báo cáo Phase 2](docs/PHASE_2_VALIDATION.md).
 
 ## Database và migration
 
@@ -150,17 +175,17 @@ Giữ nguyên `DATABASE_URL` và file database khi restart. Dừng bot trước 
 .\.venv\Scripts\python.exe -m ruff format --check .
 ```
 
-Đã kiểm thử trên Linux với **Python 3.12.15: 65 passed**; lint/format pass. Tests dùng SQLite file tạm và mock Discord, chặn kết nối mạng, không cần `.env` thật. Bao gồm config, quyền owner, callbacks, DM, startup, rollback, migration/khóa ngoại, UTC, giữ settings qua restart và lỗi không lộ nội dung riêng tư. Người dùng đã xác nhận nghiệm thu Phase 1 ngày 2026-10-23 sau checklist Discord thực tế. Codex không tự đăng nhập Discord hoặc chạy PowerShell trên Windows trong môi trường này. Xem [báo cáo nghiệm thu](docs/PHASE_1_VALIDATION.md).
+Đã kiểm thử trên Linux với **Python 3.12.15: 159 passed**; lint/format pass. Tests dùng SQLite file tạm và mock Discord, chặn kết nối mạng. Bao gồm hồi quy Foundation, rendering, điều hướng, quyền button/select/modal, settings, pagination, timeout, lỗi, chống trùng dashboard và khôi phục nút sau khi tạo client mới trên cùng SQLite. Codex chưa kiểm tra Discord Desktop/Mobile hoặc PowerShell trên Windows trong phiên Phase 2. Xem [báo cáo Phase 2](docs/PHASE_2_VALIDATION.md); [báo cáo Phase 1](docs/PHASE_1_VALIDATION.md) lưu kết quả lịch sử lúc chốt Foundation.
 
-## Checklist kiểm thử thủ công Phase 1
+## Kiểm tra hồi quy Foundation
 
 Người dùng đã xác nhận “Phase 1 DONE” ngày 2026-10-23. Giữ checklist dưới đây để kiểm tra lại khi thay đổi cấu hình hoặc môi trường chạy.
 
 1. Chạy bot trong server riêng, kiểm tra log `bot_online`, chạy `/ping` bằng owner.
-2. Chạy `/menu`, kiểm tra tiêu đề, đủ 11 module “Sắp ra mắt”, không có số liệu giả; tài khoản khác không thấy phản hồi ephemeral.
-3. Dùng tài khoản khác chạy `/ping`, `/menu`: chỉ nhận thông báo không có quyền. Nhắn DM từ tài khoản đó: không được phục vụ. DM từ owner: chỉ có hướng dẫn Phase 1.
+2. Chạy `/menu`, kiểm tra dashboard có các module và trạng thái rõ ràng, không có số liệu giả; panel của owner vẫn là ephemeral.
+3. Dùng tài khoản khác chạy `/ping`, `/menu`: chỉ nhận thông báo không có quyền. Nhắn DM từ tài khoản đó: không được phục vụ. DM từ owner: chỉ có hướng dẫn.
 4. Dừng rồi chạy lại bot, kiểm tra `/ping`, `/menu` và `alembic current` vẫn là `0001_foundation`, file DB vẫn còn. Persistence của owner/settings đã có integration test riêng.
-5. Ghi nhận kết quả thực tế khi kiểm tra lại. Acceptance P1 trong ROADMAP đã được cập nhật theo xác nhận của người dùng; chưa triển khai Phase 2.
+5. Ghi nhận kết quả thực tế khi kiểm tra lại. P1 đã nghiệm thu; P2 hiện chờ checklist Desktop/Mobile trong báo cáo Phase 2, chưa chuyển P3.
 
 ## Xử lý lỗi thường gặp
 
@@ -175,6 +200,11 @@ Người dùng đã xác nhận “Phase 1 DONE” ngày 2026-10-23. Giữ check
 | `OwnerMismatchError` | Đối chiếu owner ID với DB đã dùng; bot không tự đổi chủ hoặc xóa DB |
 | Owner không nhận DM | Kiểm tra privacy settings; Phase 1 không fallback sang kênh công khai |
 | `command_failed` / interaction hết hạn | Thử lại lệnh và xem `interaction_id`, `error_type`; không chia sẻ token hoặc raw nội dung riêng tư |
+| `/menu` yêu cầu kênh riêng | Tắt View Channel cho `@everyone` trong kênh văn bản dashboard, cấp quyền owner/bot và kiểm tra role khác |
+| Dashboard tạo được nhưng chưa ghim | Cấp Pin Messages, kiểm tra giới hạn ghim hoặc owner ghim thủ công; mở lại `/menu` sẽ dùng cùng message |
+| Dashboard bị xóa | Mở `/menu`; bot tạo lại trong kênh đã lưu. Nếu cả kênh bị xóa, mở `/menu` trong kênh riêng mới |
+| Mất quyền xem/đọc dashboard cũ | Sửa quyền kênh cũ; lỗi Forbidden không làm bot tạo bảng trùng ở kênh khác |
+| Panel hết hạn sau restart hoặc chờ lâu | Mở panel mới từ bảng neo; chỉ bảng neo có persistent View |
 
 Log chỉ ghi metadata vận hành ra console, không bật SDK debug/SQL logging và không lưu raw DM. `.env`, DB, venv và cache được gitignore.
 

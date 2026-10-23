@@ -1,6 +1,5 @@
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import patch
 
 import discord
 import pytest
@@ -8,38 +7,43 @@ from discord import app_commands
 
 from app.discord_bot.commands.foundation import FoundationCommands
 from app.discord_bot.error_handlers import ERROR_MESSAGE, handle_command_error, send_private
-from app.discord_bot.renderers.dashboard import MODULES
+from app.domain.modules import Screen
 
 
-def test_ping_returns_online_status_privately(interaction, authorization):
-    asyncio.run(FoundationCommands(authorization).ping(interaction))
+def test_ping_returns_online_status_privately(interaction, authorization, command_controller):
+    asyncio.run(FoundationCommands(authorization, command_controller).ping(interaction))
     sender = interaction.response.send_message
     assert sender.await_args.args == ("Pong! NOVA đang online.",)
     assert sender.await_args.kwargs["ephemeral"] is True
 
 
-def test_menu_contains_exactly_requested_modules_without_metrics(interaction, authorization):
-    asyncio.run(FoundationCommands(authorization).menu(interaction))
-    kwargs = interaction.response.send_message.await_args.kwargs
-    assert kwargs["ephemeral"] is True
-    embed = kwargs["embed"]
-    assert embed.title == "NOVA — PERSONAL CONTROL CENTER"
-    assert tuple(field.name for field in embed.fields) == MODULES
-    assert len(embed.fields) == 11
-    assert all(field.value == "Sắp ra mắt" for field in embed.fields)
-    assert "view" not in kwargs  # No Phase 2 components.
+def test_menu_delegates_to_dashboard(interaction, authorization, command_controller):
+    asyncio.run(FoundationCommands(authorization, command_controller).menu(interaction))
+    command_controller.menu.assert_awaited_once_with(interaction)
 
 
-@pytest.mark.parametrize("command", ["ping", "menu"])
-def test_direct_command_callbacks_also_deny_non_owner(interaction, authorization, command):
+@pytest.mark.parametrize("command", ["ping", "menu", "help", "settings"])
+def test_direct_command_callbacks_also_deny_non_owner(
+    interaction, authorization, command, command_controller
+):
     interaction.user.id += 1
-    with patch("app.discord_bot.commands.foundation.render_dashboard") as renderer:
-        asyncio.run(getattr(FoundationCommands(authorization), command)(interaction))
-    renderer.assert_not_called()
+    asyncio.run(
+        getattr(FoundationCommands(authorization, command_controller), command)(interaction)
+    )
+    command_controller.menu.assert_not_awaited()
+    command_controller.navigate.assert_not_awaited()
     sender = interaction.response.send_message
     assert sender.await_args.kwargs["ephemeral"] is True
     assert "embed" not in sender.await_args.kwargs
     assert sender.await_args.args == ("Chỉ chủ tài khoản được sử dụng NOVA.",)
+
+
+@pytest.mark.parametrize("command,screen", [("help", Screen.HELP), ("settings", Screen.SETTINGS)])
+def test_private_shortcuts(interaction, authorization, command_controller, command, screen):
+    asyncio.run(
+        getattr(FoundationCommands(authorization, command_controller), command)(interaction)
+    )
+    command_controller.navigate.assert_awaited_once_with(interaction, screen, new_panel=True)
 
 
 @pytest.mark.parametrize("responded", [False, True])

@@ -127,3 +127,26 @@ DM “Mai nhắc tôi làm bài” → NOVA hỏi “Bạn muốn được nhắ
 - [ ] Dashboard còn tương tác được sau restart bot.
 - [ ] Không có lỗi “interaction failed” khi thao tác đúng.
 - [ ] Có UX kiểm tra được trên mobile và desktop Discord.
+
+## 9. Triển khai Phase 2 hiện tại
+
+Source P2 đã triển khai và kiểm thử tự động; kiểm tra hiển thị và thao tác trên Discord Desktop/Mobile còn chờ nghiệm thu. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend.
+
+- `/menu` trong server tạo hoặc tái sử dụng một dashboard neo. `dashboard_channel_id` và `dashboard_message_id` dùng các cột sẵn có trong `user_settings`; không có migration schema mới.
+- Bảng neo chỉ chứa UI và trạng thái chưa có dữ liệu, không chứa settings riêng tư. Ngày hiện tại được tính từ timezone đã lưu khi mở Home/Today riêng tư. Các bộ đếm không có backend hiển thị “Chưa có dữ liệu”.
+- Dashboard có Today, Tasks, Projects, Reminders, AI Assistant chia hai hàng 3+2 để dễ đọc trên mobile; select có Calendar, Goals, Finance, Habits, Notes, Memory, Reports. Có Help/Settings/Refresh; thêm slash `/help`, `/settings` làm shortcut.
+- Mỗi click từ dashboard tạo panel ephemeral. Điều hướng/Back/Refresh trong panel sửa đúng panel đó; chỉ Refresh trên bảng neo mới sửa bảng neo. Mỗi panel là một View riêng; không có biến screen/page dùng chung.
+- Settings đọc dữ liệu thật. Modal chỉ sửa timezone IANA đã có storage/service; language và notification preferences chỉ đọc, briefing/review luôn ghi “Chưa kích hoạt”. Không có automation hoặc CRUD.
+- Danh sách tính năng có phân trang 4 mục; Previous/Next chỉ xuất hiện khi có nhiều trang. Chưa hiển thị danh sách task/lịch giả.
+- `timeout=None`, custom IDs phiên bản `nova:dashboard:v1:...` và `add_view` trong startup giữ nút bảng neo sau restart. Panel riêng tư hết hạn 10 phút, modal 5 phút; panel cũ bị stop khi thay mới để tránh timeout ghi đè màn hình mới.
+- Khi panel hết hạn, bot cố gắng disable nút và ghi hướng dẫn mở lại. Lỗi token/HTTP hết hạn được xử lý an toàn, không log payload riêng tư.
+
+### Dashboard bị xóa, thiếu quyền và chống trùng
+
+Bot chỉ tạo bảng trong TextChannel có `@everyone` không được View Channel. Owner cần giới hạn các role/overwrites khác; kiểm tra `@everyone` không phải audit toàn bộ quyền của server. Bot cần View Channel, Send Messages, Read Message History, Embed Links và Pin Messages; không cần Administrator.
+
+Một lock trong process tuần tự hóa `/menu`. Tin nhắn đang gửi chờ DB commit được giữ để retry. Nếu cần phục hồi sau lần gửi bị gián đoạn, bot tìm marker của chính nó trong tối đa 50 tin nhắn gần nhất của kênh. Đây là cơ chế best effort; không cam kết Discord send và DB commit là atomic khi process chết. Không tự xóa message dư.
+
+Nếu message trả NotFound, `/menu` phục hồi tại kênh đã lưu; nếu kênh đã bị xóa, dùng kênh riêng nơi gọi lệnh. Forbidden/HTTP lỗi tạm thời không bị coi là đã xóa và không gây tự gửi bảng mới. Thiếu quyền ghim giữ nguyên message/location, báo riêng tư và cho phép thử lại. Startup chỉ restore View, không tự gửi message hoặc sửa quyền Discord.
+
+Chi tiết file, tests và hướng dẫn kiểm tra từng nút: [`PHASE_2_VALIDATION.md`](PHASE_2_VALIDATION.md).

@@ -2,14 +2,16 @@ import discord
 from discord import app_commands
 
 from app.discord_bot.checks import authorize_interaction
+from app.discord_bot.dashboard_controller import DashboardController
 from app.discord_bot.error_handlers import send_private
-from app.discord_bot.renderers.dashboard import render_dashboard
 from app.domain.authorization import OwnerAuthorization
+from app.domain.modules import Screen
 
 
 class FoundationCommands:
-    def __init__(self, authorization: OwnerAuthorization) -> None:
+    def __init__(self, authorization: OwnerAuthorization, dashboard: DashboardController) -> None:
         self.authorization = authorization
+        self.dashboard = dashboard
 
     async def ping(self, interaction: discord.Interaction) -> None:
         # Check here as well: callbacks remain guarded when invoked directly.
@@ -20,12 +22,15 @@ class FoundationCommands:
     async def menu(self, interaction: discord.Interaction) -> None:
         if not await authorize_interaction(interaction, self.authorization):
             return
-        # P1 has no DB work in commands, so acknowledge immediately.
-        await interaction.response.send_message(
-            embed=render_dashboard(),
-            ephemeral=True,
-            allowed_mentions=discord.AllowedMentions.none(),
-        )
+        await self.dashboard.menu(interaction)
+
+    async def help(self, interaction: discord.Interaction) -> None:
+        if await authorize_interaction(interaction, self.authorization):
+            await self.dashboard.navigate(interaction, Screen.HELP, new_panel=True)
+
+    async def settings(self, interaction: discord.Interaction) -> None:
+        if await authorize_interaction(interaction, self.authorization):
+            await self.dashboard.navigate(interaction, Screen.SETTINGS, new_panel=True)
 
     def register(self, tree: app_commands.CommandTree) -> None:
         tree.add_command(
@@ -35,4 +40,14 @@ class FoundationCommands:
         )
         tree.add_command(
             app_commands.Command(name="menu", description="Mở dashboard NOVA", callback=self.menu)
+        )
+        tree.add_command(
+            app_commands.Command(
+                name="help", description="Hướng dẫn sử dụng NOVA", callback=self.help
+            )
+        )
+        tree.add_command(
+            app_commands.Command(
+                name="settings", description="Cài đặt NOVA", callback=self.settings
+            )
         )

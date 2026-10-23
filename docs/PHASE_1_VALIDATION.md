@@ -1,5 +1,7 @@
 # Phase 1 — Báo cáo triển khai và nghiệm thu
 
+Đây là báo cáo lịch sử tại thời điểm chốt Phase 1. Trạng thái hiện tại xem [ROADMAP](ROADMAP.md) và [báo cáo Phase 2](PHASE_2_VALIDATION.md).
+
 Ngày: **2026-10-23**, timezone hiển thị `Asia/Ho_Chi_Minh`.
 
 **Phase 1 — DONE.** Người dùng xác nhận nghiệm thu bằng thông báo “Phase 1 DONE” ngày **2026-10-23**, sau checklist kiểm tra Discord thực tế. Kết quả kiểm thử tự động từ phiên triển khai là **65 tests pass**, lint/format pass. `docs/ROADMAP.md` đã cập nhật P1 DONE; P2 chưa bắt đầu.
