@@ -213,3 +213,11 @@ erDiagram
 Kết quả tests, database thực tế, migration và restore: [`PHASE_3A_VALIDATION.md`](PHASE_3A_VALIDATION.md).
 
 Tham chiếu kỹ thuật: [SQLite composite foreign keys](https://www.sqlite.org/foreignkeys.html#fk_composite), [SQLAlchemy overlapping foreign keys](https://docs.sqlalchemy.org/en/21/orm/join_conditions.html#overlapping-foreign-keys), [ORM version counter](https://docs.sqlalchemy.org/en/21/orm/versioning.html), [Python SQLite backup API](https://docs.python.org/3.12/library/sqlite3.html#sqlite3.Connection.backup).
+
+## 8. Services Phase 3B
+
+Schema/revision giữ nguyên `0002_core_management`. Repositories mới luôn áp dụng owner predicate khi đọc/đếm/update; không cho update ID/owner/version/origin từ payload. Service xác thực config owner trước mở transaction, kiểm tra liên kết trong scope và trả immutable DTO sau commit. UPDATE so sánh version task/event hoặc updated_at project trong cùng WHERE, đồng thời tăng version/cập nhật timestamp.
+
+Ghi qua services dùng tùy chọn BEGIN IMMEDIATE trước query để serialize SQLite read-check-write và kiểm tra overlap; engine mặc định của Foundation/migration không đổi. Creation chống lặp bằng UUID5 từ owner + loại entity + request_id, không thêm cột hoặc migration. Retry cùng key/payload trả record hiện có; payload đã khác thì từ chối, không tạo thêm.
+
+CRUD dùng archive/cancel thay hard-delete. Hoàn thành/mở lại task đặt/xóa completed_at, không tự đổi event liên kết. Calendar overlap chỉ xét confirmed, dùng `new_start < end AND new_end > start`, không tính event đang sửa; vẫn cho giữ lịch trùng sau xác nhận ràng buộc dữ liệu. Pending actions thủ công 3B nằm trong bộ nhớ, không phải bảng pending_actions P5; mất sau restart. Xem giao thức và giới hạn trong [`PHASE_3B_VALIDATION.md`](PHASE_3B_VALIDATION.md).

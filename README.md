@@ -1,6 +1,6 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái:** Phase 1 và Phase 2 **DONE**. Phase 3 đang triển khai: **3A — Database & Migration hoàn tất**, **250 tests pass**. Chưa bắt đầu 3B/3C; chưa có CRUD Tasks/Projects/Calendar trên Discord.
+> **Trạng thái:** Phase 1 và Phase 2 **DONE**. Phase 3: **3A — Database & Migration** và **3B — Repositories & Services hoàn tất**, **340 tests pass**. Chưa bắt đầu 3C; chưa có CRUD Tasks/Projects/Calendar trên Discord.
 >
 > **Cập nhật:** 2026-10-23 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
 
@@ -26,6 +26,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 | 10 | [`docs/PHASE_2_VALIDATION.md`](docs/PHASE_2_VALIDATION.md) | Dashboard Phase 2, kết quả tests, file thay đổi và checklist kiểm tra từng nút |
 | 11 | [`docs/PHASE_3_HANDOFF.md`](docs/PHASE_3_HANDOFF.md) | Handoff Phase 3, chia checkpoint 3A/3B/3C |
 | 12 | [`docs/PHASE_3A_VALIDATION.md`](docs/PHASE_3A_VALIDATION.md) | Models, migration, backup/restore và kết quả kiểm thử Phase 3A |
+| 13 | [`docs/PHASE_3B_VALIDATION.md`](docs/PHASE_3B_VALIDATION.md) | Service API, owner scope, CRUD, overlap, pending actions thủ công và tests 3B |
 | — | [`AGENTS.md`](AGENTS.md) | Quy ước bắt buộc dành cho Codex/AI lập trình |
 
 ## Trạng thái module
@@ -34,7 +35,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 |---|---|---|
 | Discord Bot, owner-only access, `/ping`, `/menu`, DB bootstrap | Phase 1 | ✅ DONE — người dùng xác nhận 2026-10-23 |
 | Dashboard neo, buttons/select/modal, Help, Settings | Phase 2 | ✅ DONE — người dùng xác nhận 2026-10-23 |
-| Tasks, Projects, Calendar | Phase 3 | 3A: models + migration hoàn tất; 3B services và 3C UI chưa bắt đầu |
+| Tasks, Projects, Calendar | Phase 3 | 3A schema và 3B services hoàn tất; 3C Discord CRUD UI chưa bắt đầu |
 | Reminders tự động | Phase 4 | Chưa bắt đầu |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | Chưa bắt đầu |
 | Memory, planner thông minh, daily/weekly reports | Phase 6 | Chưa bắt đầu |
@@ -57,14 +58,14 @@ nova-discord-agent/
 │   │   ├── commands/foundation.py
 │   │   ├── views/dashboard.py   # persistent View, panels, select, timezone modal
 │   │   └── renderers/dashboard.py
-│   ├── domain/                  # authorization, module catalogue, view models, pagination
-│   ├── services/                # settings_service, dashboard_service
+│   ├── domain/                  # DTO, errors, enums, UTC/local time, manual approvals, UI models
+│   ├── services/                # project/task/calendar + settings/dashboard
 │   └── db/
 │       ├── base.py              # UTC-aware application timestamps
 │       ├── models.py            # Foundation + Project, Task, CalendarEvent
 │       ├── backup.py            # SQLite snapshot, không ghi đè file đã có
 │       ├── session.py           # async engine, transactions, PRAGMA, migrations
-│       └── repositories/        # user_repository, settings_repository
+│       └── repositories/        # project/task/calendar owner scope + user/settings
 ├── alembic/                    # migration foundation có upgrade/downgrade
 ├── tests/                      # mock Discord, SQLite file tạm, chặn network
 ├── docs/
@@ -78,7 +79,7 @@ nova-discord-agent/
 └── README.md
 ```
 
-Phase 2 dùng legacy Embed + View: có buttons/select, panel riêng tư, modal timezone, `/help` và `/settings`. Phase 3A bổ sung schema Tasks/Projects/Calendar; chưa có services CRUD hoặc UI quản lý, các panel vẫn “Sắp ra mắt”. Dependencies giữ nguyên; schema và dữ liệu Foundation được bảo toàn.
+Phase 2 dùng legacy Embed + View: có buttons/select, panel riêng tư, modal timezone, `/help` và `/settings`. Phase 3A bổ sung schema Tasks/Projects/Calendar; 3B có repositories/services CRUD, validation, tiến độ và calendar overlap. Services chưa nối vào Discord nên các panel vẫn “Sắp ra mắt”. Dependencies giữ nguyên; schema và dữ liệu Foundation được bảo toàn.
 
 ## Chuẩn bị Discord
 
@@ -152,7 +153,7 @@ Máy mới cần Python 3.12+, tạo venv và cài `requirements-dev.txt`. Khôn
 - Nút nhanh: **Today**, **Tasks**, **Projects**, **Reminders**, **AI Assistant**.
 - Select **Các module khác…**: Calendar, Goals, Finance, Habits, Notes, Memory, Reports.
 - **Help**, **Settings**, **Refresh** nằm trên dashboard. Mỗi panel module có **Back** và **Refresh**; danh sách tính năng dài có **Previous/Next**.
-- Chưa có backend task/project/reminder/calendar: hiển thị **Chưa có dữ liệu** hoặc **Sắp ra mắt**, không hiển thị số 0 như thống kê đã đo.
+- Task/Project/Calendar đã có services ở 3B nhưng chưa nối UI; Reminders chưa có backend. Panel vẫn **Chưa có dữ liệu** hoặc **Sắp ra mắt**, không hiển thị số 0 như thống kê đã đo.
 - Settings đọc language, timezone, giờ briefing/review, notification preference từ DB. Chỉ **Sửa Timezone** được ghi thật; ví dụ `Asia/Ho_Chi_Minh` hoặc `UTC`. Language/automation/notification chưa mở chức năng sửa.
 - Panel riêng tư có thời hạn 10 phút; điều hướng thay panel và làm mới phiên. Modal có thời hạn 5 phút. Bảng neo không có timeout, các nút được đăng ký lại sau restart.
 - Khi chuyển giữa mobile và web, mở lại module từ bảng neo để có panel riêng trên thiết bị đang dùng. Settings đã lưu dùng chung database; Refresh đọc lại giá trị mới.
@@ -188,6 +189,8 @@ Mốc `created_at`/`updated_at` ở application layer luôn UTC-aware; adapter S
 
 Giữ nguyên `DATABASE_URL` và file database khi restart. Giữ backup tại nơi riêng tư (`backups/` đã được gitignore); không đưa DB vào Git và không chạy nhiều process bot trên cùng SQLite file. Downgrade về `0001_foundation` chỉ cho phép khi ba bảng P3 còn rỗng; không tự xóa dữ liệu để rollback.
 
+Phase 3B giữ revision `0002_core_management`, không có migration hoặc cấu hình mới. Service kiểm tra owner trước khi mở session, truy vấn/updates có owner scope, trả DTO sau commit. Hủy task/event và archive project là thay đổi trạng thái có xác nhận, không hard-delete. Calendar dùng khoảng nửa mở, trả xung đột trước khi ghi; chỉnh lịch confirmed cũng cần duyệt. Pending actions thủ công dùng token 5 phút trong bộ nhớ, ràng buộc nội dung/version/conflicts và owner; restart cần xem/duyệt lại. Đây là giao thức backend cho UI 3C, không phải bảng pending_actions/AI executor P5. Chi tiết API và giới hạn tại [báo cáo 3B](docs/PHASE_3B_VALIDATION.md).
+
 ## Kiểm thử tự động
 
 ```powershell
@@ -196,7 +199,7 @@ Giữ nguyên `DATABASE_URL` và file database khi restart. Giữ backup tại n
 .\.venv\Scripts\python.exe -m ruff format --check .
 ```
 
-Phase 3A đã kiểm thử trên Linux với **Python 3.12.15: 250 passed**; gồm hồi quy Phase 1–2 và tests migration/constraints/relationships/UTC/persistence/backup/restore. Tests dùng SQLite tạm, mock Discord và chặn mạng. Bản sao backup DB Phase 2 thực tế cũng đã thử upgrade/downgrade/reupgrade và restore, bảo toàn mọi cột Foundation; `nova.db` đang dùng chưa bị migration. Chi tiết tại [báo cáo Phase 3A](docs/PHASE_3A_VALIDATION.md). [Báo cáo Phase 2](docs/PHASE_2_VALIDATION.md) và [Phase 1](docs/PHASE_1_VALIDATION.md) là kết quả lịch sử; chưa chạy PowerShell trên Windows hoặc kiểm chứng lại Discord trong phiên 3A.
+Phase 3B đã kiểm thử trên Linux với **Python 3.12.15: 340 passed in 6.02s**; gồm hồi quy P1/P2/3A và 90 tests mới cho services, validation, owner scope, progress, overlap, approvals, stale/duplicate requests, concurrency, commit rollback và persistence. Lint/format/compile pass. Tests dùng SQLite tạm, mock Discord và chặn mạng; phiên 3B không đọc/sửa database đang dùng hoặc chạy Discord. Chi tiết tại [báo cáo 3B](docs/PHASE_3B_VALIDATION.md). [Báo cáo 3A](docs/PHASE_3A_VALIDATION.md) lưu kết quả migration/backup; báo cáo P1/P2 là lịch sử. Chưa chạy PowerShell trên Windows trong phiên này.
 
 ## Kiểm tra hồi quy Foundation
 
@@ -206,7 +209,7 @@ Người dùng đã xác nhận “Phase 1 DONE” ngày 2026-10-23. Giữ check
 2. Chạy `/menu`, kiểm tra dashboard có các module và trạng thái rõ ràng, không có số liệu giả; panel của owner vẫn là ephemeral.
 3. Dùng tài khoản khác chạy `/ping`, `/menu`: chỉ nhận thông báo không có quyền. Nhắn DM từ tài khoản đó: không được phục vụ. DM từ owner: chỉ có hướng dẫn.
 4. Sau khi backup/nâng cấp, dừng rồi chạy lại bot, kiểm tra `/ping`, `/menu`, revision `0002_core_management` và dữ liệu settings/dashboard vẫn còn. Persistence đã có integration tests.
-5. Ghi nhận kết quả thực tế khi kiểm tra lại. P1/P2 đã nghiệm thu; P3A hoàn tất, P3B/P3C chưa bắt đầu. Panel module vẫn chưa có CRUD.
+5. Ghi nhận kết quả thực tế khi kiểm tra lại. P1/P2 đã nghiệm thu; P3A/P3B hoàn tất, P3C chưa bắt đầu. Panel module vẫn chưa có CRUD.
 
 ## Xử lý lỗi thường gặp
 

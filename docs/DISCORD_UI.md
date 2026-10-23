@@ -132,7 +132,7 @@ Nghiệm thu ngày 2026-10-23 theo xác nhận “phase-2 Done” của người
 
 ## 9. Triển khai Phase 2 hiện tại
 
-P2 **DONE** theo xác nhận của người dùng ngày 2026-10-23. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend. P3A chỉ thêm schema/migration; chưa có services hoặc UI CRUD, các module vẫn “Sắp ra mắt”.
+P2 **DONE** theo xác nhận của người dùng ngày 2026-10-23. Giữ legacy `discord.Embed` + `discord.ui.View`, không có Components V2 hoặc web frontend. P3A đã có schema/migration, P3B có repositories/services nhưng chưa nối UI CRUD; các module vẫn “Sắp ra mắt”.
 
 - `/menu` trong server tạo hoặc tái sử dụng một dashboard neo. `dashboard_channel_id` và `dashboard_message_id` dùng các cột sẵn có trong `user_settings`; không có migration schema mới.
 - Bảng neo chỉ chứa UI và trạng thái chưa có dữ liệu, không chứa settings riêng tư. Ngày hiện tại được tính từ timezone đã lưu khi mở Home/Today riêng tư. Các bộ đếm không có backend hiển thị “Chưa có dữ liệu”.

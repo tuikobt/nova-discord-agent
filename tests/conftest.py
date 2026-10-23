@@ -1,16 +1,44 @@
 import socket
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from app.config import Settings
+from app.db.session import Database
 from app.discord_bot.dashboard_controller import DashboardController
 from app.domain.authorization import OwnerAuthorization
 from app.domain.schemas import SettingsSnapshot
+from app.services.calendar_service import CalendarService
+from app.services.project_service import ProjectService
 from app.services.settings_service import SettingsService
+from app.services.task_service import TaskService
 
 OWNER_ID = 123456789012345678
+
+
+@pytest.fixture
+def core_factory(settings, authorization):
+    @asynccontextmanager
+    async def factory(*, approvals=None):
+        database = Database(settings.database_url)
+        try:
+            await database.initialize()
+            await SettingsService(database.sessions, authorization).initialize_owner(
+                settings.owner_id, settings.timezone
+            )
+            yield SimpleNamespace(
+                database=database,
+                projects=ProjectService(database.sessions, authorization, approvals=approvals),
+                tasks=TaskService(database.sessions, authorization, approvals=approvals),
+                calendar=CalendarService(database.sessions, authorization, approvals=approvals),
+                owner=settings.owner_id,
+            )
+        finally:
+            await database.close()
+
+    return factory
 
 
 @pytest.fixture(autouse=True)
