@@ -7,7 +7,7 @@
 | Phase | Tên | Trạng thái | Deliverable |
 |---|---|---|---|
 | P0 | Planning & Design | ✅ DONE (2026-10-23) | PRD, Architecture, Database, Discord UI, Agent Tools, Security, Roadmap, AGENTS, Handoff |
-| P1 | Foundation | ⬜ NOT STARTED | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
+| P1 | Foundation | ✅ DONE (2026-10-23) | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
 | P2 | Dashboard UI | ⬜ NOT STARTED | buttons/select/modal, module views, settings shell, persistent view |
 | P3 | Core Management | ⬜ NOT STARTED | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ⬜ NOT STARTED | reminders schedule, retry/delivery, DM/channel |
@@ -35,7 +35,7 @@
 - Không có project Python/bot runtime, không claim `/menu` chạy.
 - Không deploy/charge API; không kích hoạt OAuth/Google Calendar.
 
-## 3. Phase 1 — Foundation
+## 3. Phase 1 — Foundation ✅
 
 ### Work packages
 
@@ -48,13 +48,15 @@
 
 ### Acceptance P1
 
-- [ ] Bot online trong Discord và `/ping` trả lời.
-- [ ] `/menu` hiển thị dashboard placeholder/entry; không có fake data.
-- [ ] Non-owner bị chặn ở slash/DM/callback liên quan.
-- [ ] Config thiếu token/owner ID gây lỗi an toàn, không lộ secret.
-- [ ] Database SQLite tạo thành công, restart giữ settings/owner.
-- [ ] Tests chạy pass (không cần Discord thật trong unit tests).
-- [ ] README hướng dẫn cài, chạy và xử lý lỗi thường gặp.
+- [x] Bot online trong Discord và `/ping` trả lời.
+- [x] `/menu` hiển thị dashboard placeholder/entry; không có fake data.
+- [x] Non-owner bị chặn ở slash/DM/callback liên quan.
+- [x] Config thiếu token/owner ID gây lỗi an toàn, không lộ secret.
+- [x] Database SQLite tạo thành công, restart giữ settings/owner.
+- [x] Tests chạy pass (không cần Discord thật trong unit tests).
+- [x] README hướng dẫn cài, chạy và xử lý lỗi thường gặp.
+
+**Nghiệm thu:** ngày 2026-10-23, người dùng xác nhận “Phase 1 DONE” sau checklist kiểm tra Discord thực tế. Kết quả tự động từ phiên triển khai: **65 tests pass**, lint/format pass. Xác nhận live do người dùng cung cấp; Codex không tự đăng nhập Discord để kiểm chứng lại. Chi tiết tại [`PHASE_1_VALIDATION.md`](PHASE_1_VALIDATION.md). Phase 2 vẫn **NOT STARTED**.
 
 ## 4. Phase 2 — Discord Dashboard UI
 
@@ -183,3 +185,4 @@
 | Ngày | Phase | Sự kiện |
 |---|---|---|
 | 2026-10-23 | P0 | Tạo tài liệu đặc tả ban đầu, chốt zero-command Discord UX |
+| 2026-10-23 | P1 | Foundation hoàn thành; 65 tests pass, lint/format pass; người dùng xác nhận “Phase 1 DONE”; chưa bắt đầu P2 |
