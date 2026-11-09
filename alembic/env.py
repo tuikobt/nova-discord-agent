@@ -6,8 +6,8 @@ from alembic import context
 from sqlalchemy.engine import Connection
 
 from app.config import database_url_from_mapping, environment
+from app.db import models  # noqa: F401
 from app.db.base import Base
-from app.db.models import AuditLog, User, UserSettings  # noqa: F401
 from app.db.session import Database
 
 config = context.config

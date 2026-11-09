@@ -40,7 +40,10 @@ class Database:
 
         @event.listens_for(self.engine.sync_engine, "begin")
         def sqlite_begin(connection: Connection) -> None:
-            connection.exec_driver_sql("BEGIN")
+            # Core read-check-write services reserve the SQLite writer before reads.
+            # Foundation and migration transactions retain their existing BEGIN mode.
+            immediate = connection.get_execution_options().get("nova_sqlite_immediate", False)
+            connection.exec_driver_sql("BEGIN IMMEDIATE" if immediate else "BEGIN")
 
     async def initialize(self) -> None:
         async with self.engine.begin() as connection:

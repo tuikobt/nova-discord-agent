@@ -13,7 +13,7 @@ from app.discord_bot.renderers.dashboard import (
     render_module,
     render_settings,
 )
-from app.domain.modules import MODULES, Screen
+from app.domain.modules import MODULES
 from app.domain.schemas import DashboardLocation, paginate
 from app.services.dashboard_service import DashboardService
 
@@ -27,8 +27,9 @@ def test_public_dashboard_contains_no_fake_counts_or_private_preferences():
     assert embed.title == TITLE
     assert embed.footer.text == ANCHOR_MARKER
     values = fields(embed)
-    for label in ("Tasks", "Projects", "Reminders"):
-        assert values[label] == "Chưa có dữ liệu"
+    for label in ("Tasks", "Projects"):
+        assert values[label] == "Xem trong bảng riêng"
+    assert values["Reminders"] == "Sắp ra mắt"
     assert "Hôm nay" not in values
     assert "Sắp ra mắt" in values["Trạng thái các module"]
     assert "Memory" in values["Trạng thái các module"]
@@ -36,7 +37,7 @@ def test_public_dashboard_contains_no_fake_counts_or_private_preferences():
     assert len(embed) < 6000
 
 
-@pytest.mark.parametrize("screen", [screen for screen in MODULES if screen != Screen.SETTINGS])
+@pytest.mark.parametrize("screen", [screen for screen in MODULES if not MODULES[screen].available])
 def test_unavailable_modules_only_offer_descriptions(screen):
     spec = MODULES[screen]
     embed = render_module(screen, paginate(spec.features))

@@ -12,6 +12,7 @@ from app.discord_bot.views.dashboard import (
     PanelView,
     TimezoneModal,
 )
+from app.domain.core import Page
 from app.domain.modules import MODULES, MORE_SCREENS, QUICK_SCREENS, Screen
 from app.domain.schemas import DashboardLocation
 
@@ -52,8 +53,8 @@ def test_every_screen_renders_in_a_private_panel(controller, interaction, screen
         assert view.timeout == 600
         assert not view.is_persistent()
         if screen != Screen.HOME:
-            assert {item.label for item in view.children} >= {"Back", "Refresh"}
-        if screen in MODULES and screen != Screen.SETTINGS:
+            assert {getattr(item, "label", None) for item in view.children} >= {"Back", "Refresh"}
+        if screen in MODULES and not MODULES[screen].available:
             assert "Sắp ra mắt" in str(kwargs["embed"].to_dict())
         interaction.message.edit.assert_not_awaited()
 
@@ -83,25 +84,37 @@ def test_public_button_opens_private_panel_without_overwriting_anchor(
     asyncio.run(scenario())
 
 
-def test_back_refresh_and_next_edit_only_current_private_panel(controller, interaction):
+def test_back_refresh_and_next_edit_only_current_private_panel(
+    controller, interaction, core_services_mock
+):
     async def scenario():
-        view = PanelView(controller, Screen.TASKS)
-        next_button = next(item for item in view.children if item.label == "Next")
+        core_services_mock.tasks.list.side_effect = lambda actor, **kwargs: Page(
+            (), 6, kwargs["page"], 5
+        )
+        await controller.navigate(interaction, Screen.TASKS, new_panel=True)
+        interaction.response.defer.reset_mock()
+        interaction.response.is_done.return_value = False
+        view = interaction.edit_original_response.await_args.kwargs["view"]
+        next_button = next(item for item in view.children if getattr(item, "label", None) == "Next")
         await next_button.callback(interaction)
         interaction.response.defer.assert_awaited_once_with()
         kwargs = interaction.edit_original_response.await_args.kwargs
         assert "Trang 2/2" in kwargs["embed"].footer.text
         assert view.is_finished()
         second = kwargs["view"]
-        assert next(item for item in second.children if item.label == "Next").disabled
-        await next(item for item in second.children if item.label == "Refresh").callback(
-            interaction
-        )
+        assert next(
+            item for item in second.children if getattr(item, "label", None) == "Next"
+        ).disabled
+        await next(
+            item for item in second.children if getattr(item, "label", None) == "Refresh"
+        ).callback(interaction)
         assert (
             "Trang 2/2" in interaction.edit_original_response.await_args.kwargs["embed"].footer.text
         )
         third = interaction.edit_original_response.await_args.kwargs["view"]
-        await next(item for item in third.children if item.label == "Back").callback(interaction)
+        await next(
+            item for item in third.children if getattr(item, "label", None) == "Back"
+        ).callback(interaction)
         assert interaction.edit_original_response.await_args.kwargs["embed"].title.endswith(
             "CONTROL CENTER"
         )

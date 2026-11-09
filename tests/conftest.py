@@ -1,16 +1,60 @@
 import socket
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from app.config import Settings
+from app.db.session import Database
 from app.discord_bot.dashboard_controller import DashboardController
 from app.domain.authorization import OwnerAuthorization
+from app.domain.core import Page, ProjectProgress
 from app.domain.schemas import SettingsSnapshot
+from app.services.calendar_service import CalendarService
+from app.services.core_management import CoreServices, SummaryService
+from app.services.project_service import ProjectService
 from app.services.settings_service import SettingsService
+from app.services.task_service import TaskService
 
 OWNER_ID = 123456789012345678
+
+
+@pytest.fixture
+def core_factory(settings, authorization):
+    @asynccontextmanager
+    async def factory(*, approvals=None):
+        database = Database(settings.database_url)
+        try:
+            await database.initialize()
+            await SettingsService(database.sessions, authorization).initialize_owner(
+                settings.owner_id, settings.timezone
+            )
+            yield SimpleNamespace(
+                database=database,
+                projects=ProjectService(database.sessions, authorization, approvals=approvals),
+                tasks=TaskService(database.sessions, authorization, approvals=approvals),
+                calendar=CalendarService(database.sessions, authorization, approvals=approvals),
+                owner=settings.owner_id,
+            )
+        finally:
+            await database.close()
+
+    return factory
+
+
+@pytest.fixture
+def core_ui_factory(core_factory, discord_client):
+    @asynccontextmanager
+    async def factory():
+        async with core_factory() as env:
+            authorization = env.tasks.authorization
+            preferences = SettingsService(env.database.sessions, authorization)
+            bundle = CoreServices(env.database.sessions, authorization)
+            controller = DashboardController(discord_client, authorization, preferences, bundle)
+            yield env, controller
+
+    return factory
 
 
 @pytest.fixture(autouse=True)
@@ -97,5 +141,23 @@ def discord_client():
 
 
 @pytest.fixture
-def controller(authorization, settings_mock, discord_client):
-    return DashboardController(discord_client, authorization, settings_mock)
+def core_services_mock():
+    services = SimpleNamespace(
+        projects=Mock(spec=ProjectService),
+        tasks=Mock(spec=TaskService),
+        calendar=Mock(spec=CalendarService),
+        summary=Mock(spec=SummaryService),
+    )
+    for service in (services.projects, services.tasks, services.calendar):
+        service.list.return_value = Page((), 0, 0, 5)
+    services.projects.progress.return_value = ProjectProgress(0, 0)
+    services.calendar.list_day.return_value = Page((), 0, 0, 5)
+    services.calendar.list_week.return_value = Page((), 0, 0, 5)
+    services.summary.counts.return_value = (0, 0, 0, 0)
+    services.summary.today_tasks.return_value = ((), 0)
+    return services
+
+
+@pytest.fixture
+def controller(authorization, settings_mock, discord_client, core_services_mock):
+    return DashboardController(discord_client, authorization, settings_mock, core_services_mock)
