@@ -2,6 +2,10 @@
 
 Ngày: **2026-10-23**. Source 3C và kiểm thử tự động hoàn tất, đã rà soát form theo phản hồi người dùng: **419 passed in 8.32s**. **Chưa nghiệm thu Discord Desktop/Mobile, chưa đánh dấu toàn Phase 3 DONE.** Không bắt đầu P4/P5.
 
+**Bổ sung kiểm thử Windows:** sau sửa các lỗi tương thích, bộ hiện tại đạt **431 passed in 24.82s** trên Python **3.12.3**. Chi tiết ở mục cập nhật Windows bên dưới; kết quả Linux trong các mục lịch sử vẫn giữ nguyên. Chưa chốt nghiệm thu Discord thực tế.
+
+**Nghiệm thu kỹ thuật trước 4A:** chạy lại P3 đạt **431 passed in 26.33s**. Theo yêu cầu mới của người dùng, tiếp tục chỉ source/schema/validation 4A; không ghi nhận Discord Desktop/Mobile đã được thử. Toàn bộ kết quả hiện tại và giới hạn database vận hành xem [`PHASE_4A_VALIDATION.md`](PHASE_4A_VALIDATION.md). Những phát biểu dừng trước P4 trong báo cáo này mô tả các lượt triển khai trước yêu cầu tiếp tục.
+
 ## Phạm vi và repository
 
 - Bắt đầu từ nhánh sạch `feat/phase-3`, đã có 3A/3B và 340 tests. Đã đọc AGENTS, tài liệu thiết kế/roadmap/security/handoff cùng API, source và tests hiện có.
@@ -149,6 +153,35 @@ Không cần token/API key mới. Không gửi token hoặc DB riêng tư vào c
 | UTC/local timezone và input validation | Round-trip/DST/strict parsing/UI tests pass | Chờ kiểm tra giờ hiển thị |
 
 **Chưa đánh dấu P3/3C DONE.** Chờ người dùng xác nhận checklist thực tế; không tự chuyển P4.
+
+## Cập nhật tương thích Windows
+
+Theo yêu cầu sửa Phase 3, đã kiểm tra trên nhánh `feat/phase-4`, base commit `754fa74` chứa merge Phase 3. Phạm vi sửa chỉ là Phase 3; chưa triển khai Phase 4A, worker, reminder UI hoặc AI.
+
+Lần kiểm tra Windows trước sửa có **306 failed, 113 passed**. Phần lớn lỗi xuất hiện trước khi chạy nghiệp vụ: fixture chặn mạng chặn cả kết nối loopback mà Python Windows dùng để tạo `socket.socketpair()` cho asyncio.
+
+Các sửa đổi:
+
+- `tests/conftest.py`: chỉ cho phép kết nối loopback trong quá trình stdlib tạo socketpair, dùng ContextVar để không mở quyền cho thread khác; vẫn chặn direct connect, create_connection và connect_ex. Thêm `tests/test_network_guard.py` kiểm tra socketpair, nhiều event loops và các kết nối bị từ chối, kể cả loopback ngoài socketpair.
+- `tests/test_config.py`: so sánh đường dẫn sau khi parse URL, thay vì so sánh chuỗi có encoding phụ thuộc hệ điều hành. Thêm kiểm tra round-trip/idempotence với đường dẫn có khoảng trắng, tiếng Việt, `#` và `%`. Không thay đổi cấu hình hoặc vị trí database của ứng dụng.
+- `app/db/backup.py`: CLI giữ encoding stdout/stderr hiện có, dùng `backslashreplace` cho ký tự không biểu diễn được để tránh UnicodeEncodeError sau khi backup đã thành công. Console hỗ trợ Unicode vẫn hiển thị tiếng Việt bình thường. Tests chạy subprocess với UTF-8, ASCII và CP1252, tên backup có tiếng Việt; kiểm tra thành công và từ chối ghi đè.
+- `tests/test_core_discord.py`: cố định đồng hồ của controller/picker trong test lọc deadline. Trước sửa, test dùng dữ liệu tháng 10/2026 nhưng bộ chọn mở theo tháng của ngày chạy, dẫn tới lọc sai tháng. Không thay đổi logic thời gian hoặc bộ lọc trong ứng dụng.
+
+Kết quả chạy với Python trong `.venv` trên Windows PowerShell:
+
+| Lệnh | Kết quả |
+|---|---|
+| `.\.venv\Scripts\python.exe -m pytest -q` | **431 passed in 24.82s**, exit 0 |
+| `.\.venv\Scripts\python.exe -m ruff check .` | All checks passed, exit 0 |
+| `.\.venv\Scripts\python.exe -m ruff format --check .` | 96 files already formatted, exit 0 |
+| `.\.venv\Scripts\python.exe -m compileall -q app alembic tests` | Pass, exit 0 |
+| `git diff --check` | Pass, exit 0 |
+
+Có thêm **12 test cases**, gồm 7 network-guard cases, 3 URL round-trip cases và tăng 2 encoding cases cho backup CLI. Toàn bộ tests cũ còn được chạy, bao gồm CRUD/owner, timezone/DST, overlap/confirmation, restart, migration/rollback và backup/restore trên SQLite tạm. Discord được mock; không gọi dịch vụ ngoài.
+
+Không sửa models, migration, dependencies, `.env`, owner/settings hoặc database thật; không khởi động bot và không chạy Alembic trên DB đang dùng. Nếu cần hoàn tác bản sửa, chỉ hoàn tác các file nêu trên và mục báo cáo này, giữ nguyên mọi thay đổi riêng của người dùng; không cần restore database. `docs/NOVA_PHASE_4_HANDOFF.md` là file người dùng có sẵn, không sửa.
+
+**P3 vẫn chờ nghiệm thu Discord Desktop/Mobile, non-owner và restart theo checklist phía trên.** Không đánh dấu P3 DONE hoặc chuyển sang P4 trong lần sửa này; README/ROADMAP giữ nguyên trạng thái nghiệm thu.
 
 ## File tạo/sửa
 

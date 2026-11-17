@@ -57,8 +57,9 @@ def test_invalid_source_leaves_no_successful_backup(tmp_path):
     assert not destination.exists()
 
 
-def test_backup_cli_uses_configured_path_without_discord_credentials(tmp_path):
-    source, destination = tmp_path / "source.db", tmp_path / "backup.db"
+@pytest.mark.parametrize("encoding", ["utf-8", "ascii", "cp1252"])
+def test_backup_cli_uses_configured_path_without_discord_credentials(tmp_path, encoding):
+    source, destination = tmp_path / "source.db", tmp_path / "bản sao.db"
     with closing(sqlite3.connect(source)) as connection:
         connection.execute("CREATE TABLE sample (value TEXT)")
     environment = {
@@ -66,6 +67,7 @@ def test_backup_cli_uses_configured_path_without_discord_credentials(tmp_path):
         "DATABASE_URL": f"sqlite+aiosqlite:///{source}",
         "DISCORD_TOKEN": "",
         "DISCORD_OWNER_ID": "",
+        "PYTHONIOENCODING": f"{encoding}:strict",
     }
     for expected in (0, 1):
         result = subprocess.run(
@@ -74,8 +76,14 @@ def test_backup_cli_uses_configured_path_without_discord_credentials(tmp_path):
             env=environment,
             capture_output=True,
             text=True,
+            encoding=encoding,
             timeout=10,
         )
         assert result.returncode == expected
         assert "DISCORD_TOKEN" not in result.stdout + result.stderr
+        assert "UnicodeEncodeError" not in result.stdout + result.stderr
+        if expected == 0:
+            assert "integrity" in result.stdout
+        else:
+            assert "FileExistsError" in result.stderr
     assert destination.exists()

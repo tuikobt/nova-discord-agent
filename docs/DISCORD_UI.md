@@ -172,3 +172,17 @@ Chi tiết file, tests và hướng dẫn kiểm tra từng nút: [`PHASE_2_VALI
 - Sau commit mới báo Đã lưu; nếu Discord render lỗi sau commit, báo rõ đã lưu và hướng dẫn mở lại, không chạy mutation lần nữa.
 
 Kiểm thử tự động **419 passed** sau rà soát UI chọn ngày/giờ; chưa nghiệm thu live Desktop/Mobile. File, giới hạn và checklist: [`PHASE_3C_VALIDATION.md`](PHASE_3C_VALIDATION.md).
+
+## 11. Reminder UI — source Phase 4C
+
+Reminders đã có backend và private panel thật. Các mô tả Sắp ra mắt trong các mục lịch sử P2/P3 không còn áp dụng cho module này; AI và các module tương lai vẫn chưa triển khai.
+
+- `/menu → Reminders`: list 5 mục/trang, status filter, Previous/Next, Back/Refresh, Thêm và Cài đặt gửi. Detail có lịch/recurrence/timezone, target, links và delivery history gần nhất; Sửa, Tạm dừng/Tiếp tục, Hủy theo status.
+- Thêm mở modal title + nhập datetime chính xác tùy chọn; tiếp tục trong bản nháp. Date picker legacy có lịch tháng, hai menu ngày, giờ/phút; chọn xong Dùng ngày giờ. Chọn once/daily/weekly, weekday, DM/kênh đã duyệt và task/event qua picker owner-scoped; không gõ ID.
+- Chỉ Lưu mới ghi DB, tuần/ngày đầu phải khớp rule. Invalid time giữ title/raw input. Draft tối đa 10 phút, modal 5 phút, không gia hạn khi chọn menu; stale/replaced/duplicate submit bị chặn. Retry giữ request ID, đã commit thì không submit lại khi render lỗi.
+- Sửa/pause/resume/cancel và settings có before/after + Duyệt/Bỏ qua; pending token tối đa 5 phút và mất khi restart. Thay đổi reminder vô hiệu hóa các occurrence/snooze chưa xử lý. One-time resume quá giờ đề xuất mốc sau 1 phút; owner Duyệt mới lưu.
+- Cài đặt gửi: DM toggle, ChannelSelect cho fallback và quiet hours local HH:MM, có xác nhận. Kênh phải trên server do owner sở hữu, không cho @everyone/role/member khác xem (ngoại trừ managed role bot); sender kiểm tra lại mỗi lần gửi. Không tự đổi quyền kênh.
+- Notification legacy Embed + View có Đã làm, Hoãn 15 phút, Tắt. DynamicItem stable prefix + delivery UUID đăng ký lại lúc startup; backend kiểm tra owner, message ID, sent state, TTL 24h và stale/replay. Done/Snooze chỉ xử lý occurrence, recurring vẫn tiếp tục; Tắt cần duyệt. Task cancelled không bị Done tự mở lại.
+- Home private đếm reminders active từ DB; không công khai counts trên bảng neo. Help/Settings dẫn tới cấu hình reminder thật. Không có UI giả đã lưu/gửi, không Components V2 hoặc web frontend.
+
+Source/tests P4 **617 pass** với mock Discord và SQLite tạm. Chưa chạy Desktop/Mobile/DM/restart thật; checklist và runbook: [`PHASE_4BC_VALIDATION.md`](PHASE_4BC_VALIDATION.md). Không tự chốt toàn P4 DONE hoặc bắt đầu P5.

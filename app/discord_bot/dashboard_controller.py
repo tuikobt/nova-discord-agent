@@ -9,6 +9,7 @@ from app.discord_bot.core_controller import CoreController
 from app.discord_bot.core_state import CORE_SCREENS, CoreRoute
 from app.discord_bot.dashboard_publisher import DashboardPublisher, DashboardPublishError
 from app.discord_bot.error_handlers import send_private
+from app.discord_bot.reminder_controller import ReminderController
 from app.discord_bot.renderers.dashboard import (
     render_dashboard,
     render_error,
@@ -36,9 +37,12 @@ class DashboardController:
         self.client = client
         self.authorization = authorization
         self.settings = settings
-        self.service = DashboardService(settings, core_services.summary)
+        self.service = DashboardService(
+            settings, core_services.summary, getattr(core_services, "reminders", None)
+        )
         self.publisher = DashboardPublisher(client, settings)
         self.core = CoreController(self, core_services)
+        self.reminders = ReminderController(self, getattr(core_services, "reminders", None))
 
     async def restore(self) -> None:
         preferences = await self.settings.get(self.authorization.owner_id)
@@ -111,6 +115,9 @@ class DashboardController:
                 await self.publisher.require_current(interaction.user.id, interaction)
             if route in CORE_SCREENS:
                 await self.core.open(interaction, CoreRoute(route, page=page), previous=previous)
+                return
+            if route == Screen.REMINDERS and self.reminders.service is not None:
+                await self.reminders.open(interaction, page=page, previous=previous)
                 return
             if route == Screen.HOME:
                 embed = render_dashboard(await self.service.overview(interaction.user.id))

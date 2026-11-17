@@ -5,6 +5,7 @@ from app.domain.core import TaskRecord, to_record
 from app.services.calendar_service import CalendarService, local_window
 from app.services.core_service import CoreService
 from app.services.project_service import ProjectService
+from app.services.reminder_service import ReminderService
 from app.services.task_service import TaskService
 
 
@@ -29,3 +30,4 @@ class CoreServices:
         self.tasks = TaskService(sessions, authorization)
         self.calendar = CalendarService(sessions, authorization)
         self.summary = SummaryService(sessions, authorization)
+        self.reminders = ReminderService(sessions, authorization)

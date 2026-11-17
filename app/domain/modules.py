@@ -61,6 +61,7 @@ MODULES: dict[Screen, Module] = {
         "Reminder Management",
         "Theo dõi thông báo nhắc việc.",
         ("Lời nhắc một lần", "Lời nhắc lặp lại", "Hoãn và hủy lời nhắc"),
+        available=True,
     ),
     Screen.AI: Module(
         "AI Assistant",

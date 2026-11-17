@@ -1,4 +1,4 @@
-"""Foundation and Phase 3A persistence; no services or Discord CRUD workflows."""
+"""Foundation, core management and Phase 4A reminder persistence."""
 
 from __future__ import annotations
 
@@ -18,11 +18,25 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
     and_,
+    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.db.base import Base, UTCDateTime, utc_now
-from app.domain.enums import EventOrigin, EventStatus, ProjectStatus, TaskPriority, TaskStatus
+from app.domain.enums import (
+    DeliveryErrorCode,
+    DeliveryKind,
+    DeliveryStatus,
+    DeliveryTarget,
+    EventOrigin,
+    EventStatus,
+    ProjectStatus,
+    RecurrenceType,
+    ReminderStatus,
+    TaskPriority,
+    TaskStatus,
+)
+from app.domain.reminders import RecurrenceRule, ReminderData, discord_id
 
 
 class User(Base):
@@ -184,6 +198,13 @@ class Task(CoreRecord, Base):
         lazy="raise",
         passive_deletes="all",
     )
+    reminders: Mapped[list[Reminder]] = relationship(
+        back_populates="task",
+        primaryjoin=lambda: and_(Task.id == Reminder.task_id, Task.owner_id == Reminder.owner_id),
+        foreign_keys=lambda: [Reminder.task_id],
+        lazy="raise",
+        passive_deletes="all",
+    )
 
     @validates("title")
     def validate_title(self, key: str, value: str) -> str:
@@ -209,6 +230,7 @@ class Task(CoreRecord, Base):
 class CalendarEvent(CoreRecord, Base):
     __tablename__ = "calendar_events"
     __table_args__ = (
+        Index("ux_calendar_events_id_owner", "id", "owner_id", unique=True),
         ForeignKeyConstraint(
             ["task_id", "owner_id"],
             ["tasks.id", "tasks.owner_id"],
@@ -251,6 +273,15 @@ class CalendarEvent(CoreRecord, Base):
         foreign_keys=lambda: [CalendarEvent.task_id],
         lazy="raise",
     )
+    reminders: Mapped[list[Reminder]] = relationship(
+        back_populates="event",
+        primaryjoin=lambda: and_(
+            CalendarEvent.id == Reminder.event_id, CalendarEvent.owner_id == Reminder.owner_id
+        ),
+        foreign_keys=lambda: [Reminder.event_id],
+        lazy="raise",
+        passive_deletes="all",
+    )
 
     @validates("title")
     def validate_title(self, key: str, value: str) -> str:
@@ -275,3 +306,199 @@ class CalendarEvent(CoreRecord, Base):
         if type(value) is not bool:
             raise ValueError("is_fixed phải là boolean.")
         return value
+
+
+class Reminder(CoreRecord, Base):
+    __tablename__ = "reminders"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["task_id", "owner_id"],
+            ["tasks.id", "tasks.owner_id"],
+            name="fk_reminders_task_owner",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["event_id", "owner_id"],
+            ["calendar_events.id", "calendar_events.owner_id"],
+            name="fk_reminders_event_owner",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint("length(title) <= 250 AND length(trim(title)) > 0", name="title_length"),
+        CheckConstraint("recurrence_type IN ('none', 'daily', 'weekly')", name="recurrence_type"),
+        CheckConstraint(
+            "(recurrence_type = 'none' AND recurrence_config_json IS NULL) OR "
+            "(recurrence_type IN ('daily', 'weekly') AND recurrence_config_json IS NOT NULL)",
+            name="recurrence_config",
+        ),
+        CheckConstraint("delivery_target IN ('dm', 'channel')", name="delivery_target"),
+        CheckConstraint(
+            "(delivery_target = 'dm' AND channel_id IS NULL) OR "
+            "(delivery_target = 'channel' AND channel_id IS NOT NULL)",
+            name="delivery_channel",
+        ),
+        CheckConstraint("status IN ('active', 'paused', 'done', 'cancelled')", name="status"),
+        Index("ix_reminders_status_fire", "status", "next_fire_at"),
+        Index("ix_reminders_owner_status", "owner_id", "status"),
+        Index("ix_reminders_task_owner", "task_id", "owner_id"),
+        Index("ix_reminders_event_owner", "event_id", "owner_id"),
+    )
+
+    task_id: Mapped[str | None] = mapped_column(String(36))
+    event_id: Mapped[str | None] = mapped_column(String(36))
+    title: Mapped[str] = mapped_column(String(250), nullable=False)
+    next_fire_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    recurrence_type: Mapped[str] = mapped_column(
+        String(20), default=RecurrenceType.NONE, server_default="none", nullable=False
+    )
+    recurrence_config_json: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
+    delivery_target: Mapped[str] = mapped_column(
+        String(20), default=DeliveryTarget.DM, server_default="dm", nullable=False
+    )
+    channel_id: Mapped[str | None] = mapped_column(String(24))
+    status: Mapped[str] = mapped_column(
+        String(20), default=ReminderStatus.ACTIVE, server_default="active", nullable=False
+    )
+    task: Mapped[Task | None] = relationship(
+        back_populates="reminders",
+        primaryjoin=lambda: and_(Task.id == Reminder.task_id, Task.owner_id == Reminder.owner_id),
+        foreign_keys=lambda: [Reminder.task_id],
+        lazy="raise",
+    )
+    event: Mapped[CalendarEvent | None] = relationship(
+        back_populates="reminders",
+        primaryjoin=lambda: and_(
+            CalendarEvent.id == Reminder.event_id, CalendarEvent.owner_id == Reminder.owner_id
+        ),
+        foreign_keys=lambda: [Reminder.event_id],
+        lazy="raise",
+    )
+    deliveries: Mapped[list[ReminderDelivery]] = relationship(
+        back_populates="reminder",
+        foreign_keys=lambda: [ReminderDelivery.reminder_id],
+        lazy="raise",
+        passive_deletes="all",
+    )
+
+    @validates("title")
+    def validate_title(self, key: str, value: str) -> str:
+        return validate_text(value, 250)
+
+    @validates("recurrence_type", "delivery_target", "status")
+    def validate_enum(self, key: str, value: str) -> str:
+        enum = {
+            "recurrence_type": RecurrenceType,
+            "delivery_target": DeliveryTarget,
+            "status": ReminderStatus,
+        }[key]
+        return enum(value).value
+
+    @validates("recurrence_config_json")
+    def validate_config(self, key: str, value: dict | None) -> dict | None:
+        return RecurrenceRule.from_config(value).to_config() if value is not None else None
+
+    @validates("channel_id")
+    def validate_channel(self, key: str, value: str | None) -> str | None:
+        return discord_id(value) if value is not None else None
+
+
+@event.listens_for(Reminder, "before_insert")
+@event.listens_for(Reminder, "before_update")
+def validate_reminder_record(mapper, connection, target: Reminder) -> None:
+    # Validate the complete record after all attributes/relationships are set.
+    # Future-time checks belong to the create service, not loading/retrying old rows.
+    ReminderData(
+        title=target.title,
+        next_fire_at=target.next_fire_at,
+        task_id=target.task_id,
+        event_id=target.event_id,
+        recurrence_type=target.recurrence_type or RecurrenceType.NONE,
+        recurrence=(
+            RecurrenceRule.from_config(target.recurrence_config_json)
+            if target.recurrence_config_json is not None
+            else None
+        ),
+        delivery_target=target.delivery_target or DeliveryTarget.DM,
+        channel_id=target.channel_id,
+        status=target.status or ReminderStatus.ACTIVE,
+    )
+
+
+class ReminderDelivery(Base):
+    __tablename__ = "reminder_deliveries"
+    __table_args__ = (
+        UniqueConstraint("reminder_id", "scheduled_fire_at", name="uq_reminder_deliveries_fire"),
+        UniqueConstraint("id", "reminder_id", name="uq_reminder_deliveries_id_reminder"),
+        UniqueConstraint("parent_delivery_id", name="uq_reminder_deliveries_parent"),
+        ForeignKeyConstraint(
+            ["parent_delivery_id", "reminder_id"],
+            ["reminder_deliveries.id", "reminder_deliveries.reminder_id"],
+            name="fk_reminder_deliveries_parent_reminder",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint("status IN ('pending', 'claimed', 'sent', 'failed')", name="status"),
+        CheckConstraint(
+            "attempt_count >= 0 AND attempt_count = CAST(attempt_count AS INTEGER)",
+            name="attempt_count",
+        ),
+        CheckConstraint("delivery_kind IN ('scheduled', 'snooze')", name="delivery_kind"),
+        CheckConstraint(
+            "(delivery_kind = 'scheduled' AND parent_delivery_id IS NULL) OR "
+            "(delivery_kind = 'snooze' AND parent_delivery_id IS NOT NULL)",
+            name="snooze_parent",
+        ),
+        CheckConstraint("parent_delivery_id IS NULL OR parent_delivery_id != id", name="not_self"),
+        CheckConstraint(
+            "last_error_code IS NULL OR last_error_code IN "
+            "('forbidden', 'http_error', 'network_error', 'timeout', 'unknown_error')",
+            name="safe_error_code",
+        ),
+        Index("ix_reminder_deliveries_status_fire", "status", "scheduled_fire_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    reminder_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("reminders.id", ondelete="RESTRICT"), nullable=False
+    )
+    scheduled_fire_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), default=DeliveryStatus.PENDING, server_default="pending", nullable=False
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    last_error_code: Mapped[str | None] = mapped_column(String(100))
+    discord_message_id: Mapped[str | None] = mapped_column(String(24))
+    claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    retry_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    claim_token: Mapped[str | None] = mapped_column(String(36))
+    finished_reason: Mapped[str | None] = mapped_column(String(20))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    delivery_kind: Mapped[str] = mapped_column(
+        String(20), default=DeliveryKind.SCHEDULED, server_default="scheduled", nullable=False
+    )
+    parent_delivery_id: Mapped[str | None] = mapped_column(String(36))
+    reminder: Mapped[Reminder] = relationship(
+        back_populates="deliveries", foreign_keys=[reminder_id], lazy="raise"
+    )
+
+    @validates("status", "delivery_kind", "last_error_code")
+    def validate_enum(self, key: str, value: str | None) -> str | None:
+        if key == "last_error_code" and value is None:
+            return None
+        enum = {
+            "status": DeliveryStatus,
+            "delivery_kind": DeliveryKind,
+            "last_error_code": DeliveryErrorCode,
+        }[key]
+        return enum(value).value
+
+    @validates("attempt_count")
+    def validate_attempt_count(self, key: str, value: int) -> int:
+        if type(value) is not int or value < 0:
+            raise ValueError("attempt_count phải là số nguyên không âm.")
+        return value
+
+    @validates("discord_message_id")
+    def validate_message_id(self, key: str, value: str | None) -> str | None:
+        return discord_id(value) if value is not None else None

@@ -29,7 +29,7 @@ def test_public_dashboard_contains_no_fake_counts_or_private_preferences():
     values = fields(embed)
     for label in ("Tasks", "Projects"):
         assert values[label] == "Xem trong bảng riêng"
-    assert values["Reminders"] == "Sắp ra mắt"
+    assert values["Reminders"] == "Xem trong bảng riêng"
     assert "Hôm nay" not in values
     assert "Sắp ra mắt" in values["Trạng thái các module"]
     assert "Memory" in values["Trạng thái các module"]
@@ -64,7 +64,7 @@ def test_settings_are_real_preferences_and_automation_is_inactive(preferences):
     assert values["Morning Briefing"] == "08:15 • Chưa kích hoạt"
     assert values["Daily Review"] == "Chưa đặt giờ • Chưa kích hoạt"
     assert "Tắt" in values["Notification Preferences"]
-    assert "Chưa kích hoạt" in values["Notification Preferences"]
+    assert "Reminders" in values["Notification Preferences"]
     assert "Owner Access" in values
     assert "Đã lưu" not in embed.description
     assert "Đã lưu" in render_settings(snapshot, saved=True).description

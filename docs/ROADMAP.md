@@ -9,8 +9,8 @@
 | P0 | Planning & Design | ✅ DONE (2026-10-23) | PRD, Architecture, Database, Discord UI, Agent Tools, Security, Roadmap, AGENTS, Handoff |
 | P1 | Foundation | ✅ DONE (2026-10-23) | bot online, owner auth, DB bootstrap, `/ping`, `/menu` shell |
 | P2 | Dashboard UI | ✅ DONE (2026-10-23) | buttons/select/modal, module views, settings shell, persistent view |
-| P3 | Core Management | 🟨 IN PROGRESS — 3C source/tests xong, chờ nghiệm thu Discord | Tasks, Projects, Calendar (DB CRUD + conflicts) |
-| P4 | Reminder Engine | ⬜ NOT STARTED | reminders schedule, retry/delivery, DM/channel |
+| P3 | Core Management | 🟨 Nghiệm thu tự động đạt — Discord live chưa xác minh | Tasks, Projects, Calendar (DB CRUD + conflicts) |
+| P4 | Reminder Engine | ✅ DONE (2026-11-17, người dùng nghiệm thu) | Reminder Engine/UI, 625 tests, DB/Discord thật và DM/Đã làm |
 | P5 | AI Agent | ⬜ NOT STARTED | natural-language DM + OpenAI tool calling + confirmations |
 | P6 | Memory & Proactive Automation | ⬜ NOT STARTED | memory controls, planner suggestions, morning/daily/weekly reports |
 | P7 | Expansion & Deployment | ⬜ NOT STARTED | Goals/Finance/Habits/Notes, integrations optional, Docker/VPS |
@@ -98,6 +98,8 @@
 
 Source và tests 3C đã xong; checkbox giữ trống vì còn nghiệm thu Desktop/Mobile, owner/non-owner và restart Discord thật.
 
+**Cập nhật nghiệm thu kỹ thuật trước 4A:** sau sửa lỗi Windows, đã chạy lại baseline P3 **431 passed in 26.33s**, Python 3.12.3. Tests xác minh CRUD qua mocked UI, persistence/restart, owner/FK, overlap/confirmations, counts và UTC/local/DST. Người dùng yêu cầu nghiệm thu bằng khả năng hiện có và tiếp tục **chỉ 4A**. Chưa tự đăng nhập Discord; không dùng yêu cầu chuyển checkpoint làm bằng chứng live smoke test. Các ghi chú “không bắt đầu P4” phía trên là trạng thái lịch sử trước yêu cầu này. Chi tiết: [`PHASE_4A_VALIDATION.md`](PHASE_4A_VALIDATION.md).
+
 **Giới hạn/assumptions:** schema 3A giữ FK ghép cùng owner, RESTRICT và defaults `proposed/manual`, `todo/medium`. Service 3B cho thao tác tạo lịch thủ công mặc định `confirmed` sau overlap check; `proposed` vẫn được hỗ trợ. Task status đồng bộ completed_at, không tự đổi calendar events liên kết. Updates task/event so sánh version, project so sánh updated_at; SQL ghi có owner predicate. SQLite service writes dùng BEGIN IMMEDIATE để reserve writer trước read-check-write, Foundation/migration vẫn BEGIN như cũ.
 
 **Pending actions thủ công 3B:** hủy task/event, archive project, sửa event confirmed và giữ overlap cần token service cấp, gắn owner/payload/version/conflict snapshot, TTL 5 phút, dùng sau commit thành công; lỗi commit không tiêu thụ token. Lưu trong bộ nhớ có giới hạn 100 phiên, mất khi restart và phải duyệt lại. Không thêm bảng pending_actions/executor AI P5. Tạo bản ghi yêu cầu request_id ổn định để chống double submit, đối chiếu payload khi retry; thay đổi payload hoặc record đã chỉnh sửa có thể yêu cầu key mới. Chỉ một process SQLite, không tuyên bố multi-worker support. UI 3C phải giữ service instances qua các interactions, đọc timezone từ Settings và hiển thị trước/sau cùng conflicts trước khi gửi token duyệt; không tự duyệt token nhận từ lỗi.
@@ -115,12 +117,32 @@ Source và tests 3C đã xong; checkbox giữ trống vì còn nghiệm thu Desk
 
 - [ ] Owner tạo/sửa task/project/event qua Discord UI, xem lại vẫn đúng.
 - [ ] Restart bot không mất dữ liệu.
-- [ ] Không có task/event tham chiếu project/task của owner khác (validation).
-- [ ] Calendar phát hiện overlap và báo rõ; không tự xóa/thay lịch.
-- [ ] Task/project counts phản ánh DB, empty states chuẩn.
-- [ ] CRUD & timezone tests pass.
+- [x] Không có task/event tham chiếu project/task của owner khác (validation; đạt tự động).
+- [x] Calendar phát hiện overlap, yêu cầu duyệt; không tự xóa/thay lịch (mock UI/backend tests).
+- [x] Task/project counts phản ánh DB, empty states chuẩn (SQLite + mock UI tests).
+- [x] CRUD & timezone tests pass.
 
-## 6. Phase 4 — Reminder Engine
+## 6. Phase 4 — Reminder Engine ✅
+
+**Nghiệm thu 2026-11-17:** người dùng xác nhận “oke tôi đã tét xong rồi” sau khi thử reminder. Đã xác minh bot online, DB mới theo yêu cầu ở head `0004_reminder_dispatch`, preflight exit 0; reminder one-time target DM gửi lúc 23:19:06.744815 VN cho mốc 23:19:00 (trễ khoảng 6,7 giây, một attempt) và thao tác Đã làm ghi nhận `acknowledged_at` lúc 23:19:49.151119. Bộ tự động gần nhất **625 tests pass**, lint/format/compile đạt. P4 **DONE** theo kết quả tự động và nghiệm thu của owner; **chưa bắt đầu P5**. Xem [`PHASE_4_FINAL_CHECK.md`](PHASE_4_FINAL_CHECK.md).
+
+Phạm vi bằng chứng: Codex kiểm chứng trực tiếp DB/Gateway/API send/acknowledgment; người dùng xác nhận kiểm thử xong nhưng không nêu riêng từng thiết bị/kịch bản. Không ghi nhận daily/weekly, snooze, private fallback, non-owner và restart đã được thử live riêng biệt; các luồng này có tests mock/SQLite. Các ghi chú chờ nghiệm thu bên dưới là lịch sử trước xác nhận.
+
+### Checkpoints 4A/4B/4C
+
+**Nguồn hiện tại:** người dùng yêu cầu tiếp tục cả 4B và 4C sau 4A. Source/tests đạt **617 passed in 48.84s**, Python 3.12.3 Windows; lint/format/compile pass. 4A giữ models/migration 0003, validation/FK/unique; 4B thêm services/worker/sender, 4C thêm UI/notification callbacks. Head `0004_reminder_dispatch` chỉ ADD 4 cột nullable cho durable retry/claim/ack, không rebuild bảng cũ. Báo cáo 4A là lịch sử: [`PHASE_4A_VALIDATION.md`](PHASE_4A_VALIDATION.md). Policy/API/tests/runbook hiện tại: [`PHASE_4BC_VALIDATION.md`](PHASE_4BC_VALIDATION.md). Handoff: [`NOVA_PHASE_4_HANDOFF.md`](NOVA_PHASE_4_HANDOFF.md).
+
+**Kiểm tra cuối theo yêu cầu hoàn tất P4:** bộ mới **625 passed in 37.60s**, lint/format/compile đạt. Thêm acceptance qua hai NovaClient/engines với cùng DB tạm và dừng worker giữa lúc gửi; thêm preflight read-only (không tạo/migrate DB, không login Discord). `.env` mẫu đã tạo cục bộ, cần người dùng điền token/owner và đường dẫn DB thật. Preflight thực tế exit 2 vì config chưa hợp lệ và file DB chưa có. Source/tự động sẵn sàng; không dùng kết quả mock để chốt live DONE. Chi tiết: [`PHASE_4_FINAL_CHECK.md`](PHASE_4_FINAL_CHECK.md).
+
+- [x] Models/migration/validation 4A và tests, gồm hồi quy P1–3.
+- [x] DB mới trên Windows: người dùng yêu cầu khởi tạo mới thay vì chép DB Linux. Đã tạo `nova.db` qua migrations đến `0004_reminder_dispatch`, bootstrap owner/settings; integrity/FK/schema check đạt. Không ghi đè DB có sẵn hoặc nhập/xóa dữ liệu Linux. Cấu hình cập nhật đã đạt preflight config/DB/owner/settings, exit 0.
+- [x] Kết nối Discord thật ngày 2026-11-17: `python -m app.main` sync 4 lệnh (`slash_commands_registered`), kết nối Gateway và có log `bot_online`. Chỉ khởi động một bot; chưa coi việc login là nghiệm thu nhận reminder.
+- [x] Một reminder one-time do owner tự Lưu qua Discord, target DM: lịch 23:19:00 VN, API gửi thành công/DB commit 23:19:06.744815 ngày 2026-11-17, một attempt, reminder done/delivery sent, không lỗi. Đã làm được ghi nhận 23:19:49.151119; người dùng xác nhận kiểm thử xong.
+- [x] 4B source/tests: repositories/service CRUD, approvals, worker, recurrence advancement, retry/delivery, catch-up, quiet hours, restart recovery và graceful shutdown.
+- [x] 4C source/tests: reminder UI/forms/pickers/links/settings, confirmations, counts/pagination, owner guards, notification DynamicItem callbacks sau restart.
+- [x] 4C nghiệm thu: người dùng xác nhận đã kiểm thử xong; lần gửi DM thật và nút Đã làm đã được DB xác nhận. Các biến thể thiết bị/fallback/restart không được tự ghi là đã thử live, tiếp tục giữ checklist để hồi quy khi cần.
+
+**Policy/ranh giới:** asyncio poll 15s, tối đa 3 attempts, backoff 1m/5m, lease 2m, catch-up 30m và quiet-hour delay; DB là source of truth. Daily/weekly theo giờ local qua DST, snooze một occurrence, không nhân bản reminder logic. Channel phải được owner duyệt, thuộc server owner sở hữu và không cho role/member khác xem, ngoại trừ managed role bot; sender kiểm tra lại trước gửi. Một process SQLite, không hứa exactly-once hoặc multi-worker support. Link event/task tuyệt đối, không offset/tự dời reminder. P4 đã nghiệm thu theo phạm vi bằng chứng ở trên; không có AI/P5.
 
 ### Work packages
 
@@ -131,12 +153,12 @@ Source và tests 3C đã xong; checkbox giữ trống vì còn nghiệm thu Desk
 
 ### Acceptance P4
 
-- [ ] Tạo lời nhắc và nhận thông báo gần thời điểm theo timezone.
-- [ ] Reminder vẫn tồn tại sau restart.
-- [ ] Lời nhắc lặp lại tạo lần kế tiếp đúng và không nhân bản DB vô hạn.
-- [ ] Retry/failure hiển thị trạng thái và có logs.
-- [ ] Double click/worker duplicate không nhân đôi số bản ghi delivery.
-- [ ] DM bị chặn không gây leak kênh công khai.
+- [x] Tạo reminder qua UI và gửi DM thật gần thời điểm theo timezone (khoảng 6,7 giây sau giờ hẹn); owner xác nhận kiểm thử xong, Đã làm có acknowledgment trong DB.
+- [x] Reminder vẫn tồn tại sau restart (hai client/engine trên cùng SQLite trong tests; chưa ghi nhận live restart riêng).
+- [x] Lặp lại tính lần kế tiếp theo local/DST, không nhân bản reminder logic (tự động).
+- [x] Retry/failure có DB history, UI state và logs chỉ metadata (tự động).
+- [x] Duplicate claims/clicks không nhân đôi delivery records (tự động); crash-window có thể gửi Discord trùng được ghi rõ.
+- [x] DM/private fallback fail closed, chặn kênh public/role/member khác (mock transport/ACL tests; chưa ghi nhận live fallback riêng).
 
 ## 7. Phase 5 — AI Agent
 
@@ -216,3 +238,4 @@ Source và tests 3C đã xong; checkbox giữ trống vì còn nghiệm thu Desk
 | 2026-10-23 | P3A | Hoàn tất schema/migration Core Management; 250 tests pass; backup và thử upgrade/restore trên bản sao DB Phase 2; chưa migrate DB đang dùng, chưa bắt đầu 3B/3C |
 | 2026-10-23 | P3B | Hoàn tất repositories/services/validation/overlap/manual approvals; 340 tests pass; schema giữ 0002; chưa nối UI, dừng trước 3C |
 | 2026-10-23 | P3C | Source UI CRUD và confirmations/counts đã triển khai; rà soát UX thêm draft/date-time picker/select; 419 tests pass; chờ nghiệm thu Discord Desktop/Mobile, không đánh dấu toàn P3 DONE và chưa bắt đầu P4 |
+| 2026-11-17 | P4 | 4A/4B/4C hoàn tất; 625 tests pass, DB mới Windows theo yêu cầu, bot online và reminder DM gửi sau giờ hẹn khoảng 6,7 giây; Đã làm được ghi nhận, người dùng xác nhận kiểm thử xong; P4 DONE, chưa bắt đầu P5 |

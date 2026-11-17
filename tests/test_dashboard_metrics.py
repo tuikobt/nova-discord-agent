@@ -85,9 +85,7 @@ def test_dashboard_counts_and_today_are_real_and_owner_scoped(core_ui_factory, i
             ) == (2, 1, 1, 1)
             fields = {item.name: item.value for item in render_dashboard(overview).fields}
             assert (
-                fields["Tasks"] == "2"
-                and fields["Projects"] == "1"
-                and fields["Reminders"] == "Sắp ra mắt"
+                fields["Tasks"] == "2" and fields["Projects"] == "1" and fields["Reminders"] == "0"
             )
             await dashboard.core.open(interaction, CoreRoute(Screen.TODAY, day=DAY))
             rendered = str(interaction.edit_original_response.await_args.kwargs["embed"].to_dict())

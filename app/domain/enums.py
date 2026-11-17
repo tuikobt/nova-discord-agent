@@ -34,3 +34,43 @@ class EventOrigin(StrEnum):
     MANUAL = "manual"
     AGENT = "agent"
     INTEGRATION = "integration"
+
+
+class RecurrenceType(StrEnum):
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+
+
+class ReminderStatus(StrEnum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    DONE = "done"
+    CANCELLED = "cancelled"
+
+
+class DeliveryTarget(StrEnum):
+    DM = "dm"
+    CHANNEL = "channel"
+
+
+class DeliveryStatus(StrEnum):
+    PENDING = "pending"
+    CLAIMED = "claimed"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+class DeliveryKind(StrEnum):
+    SCHEDULED = "scheduled"
+    SNOOZE = "snooze"
+
+
+class DeliveryErrorCode(StrEnum):
+    """Store classified codes, never exception text or Discord response bodies."""
+
+    FORBIDDEN = "forbidden"
+    HTTP_ERROR = "http_error"
+    NETWORK_ERROR = "network_error"
+    TIMEOUT = "timeout"
+    UNKNOWN_ERROR = "unknown_error"
