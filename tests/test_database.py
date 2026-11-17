@@ -39,10 +39,12 @@ def test_migration_from_empty_database_is_idempotent_and_matches_models(settings
                     "calendar_events",
                     "reminders",
                     "reminder_deliveries",
+                    "pending_actions",
+                    "agent_usage",
                 }
                 assert await connection.scalar(text("PRAGMA foreign_keys")) == 1
                 assert await connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                    "0004_reminder_dispatch"
+                    "0005_agent"
                 )
                 differences = await connection.run_sync(
                     lambda conn: compare_metadata(MigrationContext.configure(conn), Base.metadata)

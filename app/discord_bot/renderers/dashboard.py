@@ -136,7 +136,7 @@ def render_help() -> discord.Embed:
     embed.add_field(
         name="Sắp ra mắt",
         value=(
-            "AI và các module mở rộng: Sắp ra mắt. "
+            "Các module mở rộng: Sắp ra mắt. AI Assistant mở hướng dẫn DM và cấu hình. "
             "Tasks/Projects/Calendar có Thêm, chọn mục để Sửa, đổi trạng thái và Refresh."
         ),
         inline=False,

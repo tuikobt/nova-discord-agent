@@ -1,5 +1,12 @@
 # Architecture — NOVA AI
 
+**P5 (2026-11-18):** DM → AgentController → Responses API/tool gateway → services.
+Write từ AI dùng chế độ strict: luôn tạo durable preview và chỉ owner click mới thực thi.
+PendingActionService dùng validators/repositories của P3/P4 trong một writer transaction,
+gồm mutation + audit + receipt. Service UI cũ vẫn giữ approvals riêng. Reminder liên kết
+event dùng lựa chọn keep/shift rõ ràng như quyết định trong DATABASE.md; không tự suy ra
+relative offset. Context ngắn RAM, không long-term memory hoặc automation P6.
+
 **Architecture decision:** *Modular monolith*, một process bot + một SQLite DB trong local dev. Dùng service layer thống nhất, để sau này chuyển DB/worker/deployment mà không đổi UX. Không xây web server khi chưa cần OAuth/callback.
 
 ## 1. System context

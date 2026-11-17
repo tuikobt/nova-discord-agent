@@ -1,5 +1,21 @@
 # Security & Privacy — NOVA
 
+**P5:** OpenAI chỉ được gọi sau owner guard và khi AI_ENABLED=true, key/model đủ.
+Chỉ DM được đọc; không bật privileged Message Content intent vì Discord cho bot đọc
+content DM với chính app (xem nguồn Gateway dưới đây). Gửi context/tool data liên quan
+tới OpenAI để trả lời; Responses dùng `store=false`, không dùng hosted conversation.
+Điều này không thay thế chính sách retention/abuse monitoring của nhà cung cấp API.
+Context raw chỉ RAM tối đa 20 messages/30 phút, timer xóa khi idle, có nút xóa và mất
+khi restart. Proposals/receipts/audit và usage giữ bền vững; không chứa raw chat hay keys.
+SDK/HTTP logs bị tắt; logs NOVA chỉ error class/metadata. Mọi AI write cần click duyệt.
+Giới hạn input 4000 ký tự, 4 model rounds, 8 tool calls, 60s/turn, 12 requests/phút,
+quota requests/tokens theo ngày UTC từ env. Usage không rõ giữ reservation; không tự
+retry HTTP hoặc đổi sang model khác. Quota tokens là giới hạn ứng dụng, không phải
+cam kết số tiền; theo dõi tiền và thiết lập ngân sách dự án tại OpenAI.
+
+Nguồn: [Discord Gateway — Message Content](https://docs.discord.com/developers/events/gateway#message-content-intent),
+[OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling).
+
 **Phạm vi:** bot cá nhân lưu lịch, dự án, task và sau này có thể có tài chính, ghi chú, memory. Mặc định ưu tiên riêng tư và quyền tối thiểu.
 
 ## 1. Mô hình rủi ro

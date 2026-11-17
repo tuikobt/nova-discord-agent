@@ -5,6 +5,7 @@ import discord
 
 from app.config import Settings
 from app.db.session import Database
+from app.discord_bot.agent_controller import AgentButton, AgentController
 from app.discord_bot.checks import OwnerCommandTree
 from app.discord_bot.commands.foundation import FoundationCommands
 from app.discord_bot.dashboard_controller import DashboardController
@@ -38,6 +39,7 @@ class NovaClient(discord.Client):
         self.dashboard = DashboardController(
             self, self.authorization, self.settings_service, self.core_services
         )
+        self.agent = AgentController(self)
         self.foundation = FoundationCommands(self.authorization, self.dashboard)
         self.foundation.register(self.tree)
 
@@ -46,6 +48,7 @@ class NovaClient(discord.Client):
         await self.settings_service.initialize_owner(self.settings.owner_id, self.settings.timezone)
         await self.dashboard.restore()
         self.add_dynamic_items(NotificationButton)
+        self.add_dynamic_items(AgentButton)
         if self.settings.guild_id is not None:
             guild = discord.Object(id=self.settings.guild_id)
             self.tree.copy_global_to(guild=guild)
@@ -70,13 +73,9 @@ class NovaClient(discord.Client):
             return
         if not self.authorization.is_owner(message.author.id):
             return
-        # No reading, logging, or persisting message.content in Foundation.
+        # Guard identity before the AI adapter may inspect DM content.
         try:
-            await message.channel.send(
-                "Dùng /menu trong server để mở dashboard hoặc /help để xem hướng dẫn. "
-                "AI Assistant: Sắp ra mắt.",
-                allowed_mentions=discord.AllowedMentions.none(),
-            )
+            await self.agent.message(message)
         except discord.HTTPException as error:
             logger.warning("dm_response_failed", extra={"error_type": type(error).__name__})
 
@@ -90,6 +89,7 @@ class NovaClient(discord.Client):
 
     async def close(self) -> None:
         await self.reminder_dispatcher.stop()
+        await self.agent.close()
         try:
             await super().close()
         finally:

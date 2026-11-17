@@ -122,6 +122,10 @@ class DashboardController:
             if route == Screen.HOME:
                 embed = render_dashboard(await self.service.overview(interaction.user.id))
                 view = DashboardView(self, anchor=False)
+            elif route == Screen.AI:
+                from app.discord_bot.views.agent import AgentPanel
+
+                embed, view = AgentPanel.build(self)
             elif route == Screen.HELP:
                 embed, view = render_help(), PanelView(self, route)
             elif route == Screen.SETTINGS:

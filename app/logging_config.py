@@ -43,6 +43,15 @@ def configure_logging(level: str, token: str) -> None:
     logging.basicConfig(level=level, handlers=[handler], force=True)
     # SDK debug/error payloads can contain raw Gateway messages or SQL values.
     # NOVA's own handlers report safe error classes and lifecycle events instead.
-    for name in ("discord", "sqlalchemy", "aiosqlite"):
+    for name in (
+        "discord",
+        "sqlalchemy",
+        "aiosqlite",
+        "openai",
+        "httpx",
+        "httpx2",
+        "httpcore",
+        "httpcore2",
+    ):
         logging.getLogger(name).setLevel(logging.CRITICAL)
     logging.getLogger("alembic").setLevel(logging.WARNING)

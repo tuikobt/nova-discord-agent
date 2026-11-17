@@ -11,6 +11,8 @@ from dotenv import dotenv_values
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
+from app.agent.config import AgentConfig
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./nova.db"
 
@@ -62,6 +64,7 @@ class Settings:
     timezone: str
     log_level: str = "INFO"
     guild_id: int | None = None
+    ai: AgentConfig = field(default_factory=AgentConfig)
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str]) -> "Settings":
@@ -87,6 +90,7 @@ class Settings:
             timezone=timezone,
             log_level=level,
             guild_id=validate_discord_id(guild, "DISCORD_GUILD_ID") if guild else None,
+            ai=AgentConfig.from_mapping(values),
         )
 
 
