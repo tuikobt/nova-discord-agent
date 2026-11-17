@@ -74,7 +74,7 @@ def test_upgrade_from_phase2_backup_preserves_every_foundation_column_and_indexe
             async with upgraded.engine.connect() as connection:
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0002_core_management"
+                    == "0004_reminder_dispatch"
                 )
                 assert (await connection.execute(text("PRAGMA foreign_key_check"))).all() == []
                 for table, indexes in {
@@ -83,6 +83,7 @@ def test_upgrade_from_phase2_backup_preserves_every_foundation_column_and_indexe
                     "calendar_events": {
                         "ix_calendar_events_owner_range",
                         "ix_calendar_events_task_owner",
+                        "ux_calendar_events_id_owner",
                     },
                 }.items():
                     actual = await connection.run_sync(
@@ -195,10 +196,10 @@ def test_downgrade_refuses_to_discard_core_records(settings, model):
             async with database.engine.connect() as connection:
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0002_core_management"
+                    == "0004_reminder_dispatch"
                 )
                 tables = await connection.run_sync(lambda conn: inspect(conn).get_table_names())
-                assert set(tables) == FOUNDATION | CORE
+                assert set(tables) == FOUNDATION | CORE | {"reminders", "reminder_deliveries"}
         finally:
             await database.close()
 

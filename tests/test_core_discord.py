@@ -132,7 +132,20 @@ def test_project_task_event_creation_edit_status_and_links_through_ui(core_ui_fa
     asyncio.run(scenario())
 
 
-def test_real_lists_paging_filters_project_and_deadline_picker(core_ui_factory, interaction):
+def test_real_lists_paging_filters_project_and_deadline_picker(
+    core_ui_factory, interaction, monkeypatch
+):
+    class PickerDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is None:
+                return START.astimezone().replace(tzinfo=None)
+            return START.astimezone(tz)
+
+    # The unfiltered picker starts in the current month; keep it with the test data.
+    monkeypatch.setattr("app.discord_bot.core_controller.datetime", PickerDateTime)
+    monkeypatch.setattr("app.discord_bot.form_controller.datetime", PickerDateTime)
+
     async def scenario():
         async with core_ui_factory() as (env, dashboard):
             project = await env.projects.create(env.owner, ProjectData(name="P"), request_id="p")

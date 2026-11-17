@@ -1,6 +1,7 @@
 """SQLite snapshot without Discord credentials: python -m app.db.backup --output PATH."""
 
 import argparse
+import io
 import os
 import sqlite3
 import sys
@@ -36,6 +37,11 @@ def backup_database(source: Path, destination: Path) -> Path:
 
 
 def main() -> int:
+    # Redirected Windows streams may use a legacy encoding. Keep that encoding,
+    # but never report a successful backup as failed just because printing raises.
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(errors="backslashreplace")
     parser = argparse.ArgumentParser(description="Sao lưu SQLite NOVA, không ghi đè file đã có.")
     parser.add_argument("--output", required=True, type=Path, help="File backup riêng tư mới")
     args = parser.parse_args()

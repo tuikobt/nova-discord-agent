@@ -17,7 +17,14 @@ class SafeJsonFormatter(logging.Formatter):
             "logger": record.name,
             "event": record.getMessage(),
         }
-        for key in ("interaction_id", "error_type", "command_count"):
+        for key in (
+            "interaction_id",
+            "error_type",
+            "command_count",
+            "delivery_id",
+            "error_code",
+            "attempt_count",
+        ):
             if hasattr(record, key):
                 payload[key] = getattr(record, key)
         # Tracebacks may contain HTTP URLs, SQL parameters, or private message text.

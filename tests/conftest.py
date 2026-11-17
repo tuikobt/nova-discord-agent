@@ -1,5 +1,6 @@
 import socket
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -59,11 +60,35 @@ def core_ui_factory(core_factory, discord_client):
 
 @pytest.fixture(autouse=True)
 def deny_network(monkeypatch):
+    original_connect = socket.socket.connect
+    original_socketpair = socket.socketpair
+    building_socketpair = ContextVar("building_socketpair", default=False)
+
     def denied(*args, **kwargs):
         raise AssertionError("Unit tests must not connect to external services")
 
+    def socketpair(*args, **kwargs):
+        # Windows implements socketpair with a loopback connection. Only this
+        # synchronous construction may connect locally; other threads stay blocked.
+        token = building_socketpair.set(True)
+        try:
+            return original_socketpair(*args, **kwargs)
+        finally:
+            building_socketpair.reset(token)
+
+    def connect(sock, address):
+        if (
+            building_socketpair.get()
+            and sock.family in (socket.AF_INET, socket.AF_INET6)
+            and address[0] in ("127.0.0.1", "::1")
+        ):
+            return original_connect(sock, address)
+        denied()
+
+    monkeypatch.setattr(socket, "socketpair", socketpair)
     monkeypatch.setattr(socket, "create_connection", denied)
-    monkeypatch.setattr(socket.socket, "connect", denied)
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", denied)
 
 
 @pytest.fixture

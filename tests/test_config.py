@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import pytest
+from sqlalchemy.engine import URL, make_url
 
 from app.config import (
     PROJECT_ROOT,
@@ -82,7 +85,19 @@ def test_optional_development_guild(env_values):
 
 def test_relative_database_path_is_anchored_to_project(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert database_url_from_mapping({}) == f"sqlite+aiosqlite:///{PROJECT_ROOT / 'nova.db'}"
+    url = make_url(database_url_from_mapping({}))
+    assert url.drivername == "sqlite+aiosqlite"
+    assert Path(url.database) == PROJECT_ROOT / "nova.db"
+
+
+@pytest.mark.parametrize("filename", ["nova.db", "nova space.db", "nhắc-nhở #100%.db"])
+def test_database_url_preserves_exact_path_through_normalization(tmp_path, filename):
+    path = tmp_path / filename
+    raw = URL.create("sqlite+aiosqlite", database=str(path)).render_as_string()
+    normalized = database_url_from_mapping({"DATABASE_URL": raw})
+    assert Path(make_url(normalized).database) == path.resolve()
+    assert database_url_from_mapping({"DATABASE_URL": normalized}) == normalized
+    assert not path.exists()
 
 
 def test_dotenv_loading_and_environment_precedence(tmp_path, monkeypatch, env_values):

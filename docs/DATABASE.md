@@ -227,3 +227,36 @@ CRUD dùng archive/cancel thay hard-delete. Hoàn thành/mở lại task đặt/
 Không đổi schema/revision. DashboardRepository + SummaryService cung cấp aggregate theo owner trong read transaction: Tasks không cancelled, done trong tập này, Projects không archived và confirmed events giao khoảng ngày local. Không tạo bảng Reminders hoặc dùng số 0 cho module chưa triển khai. Today task query chỉ xét todo/doing, lọc deadline trước cuối ngày (bao gồm overdue) hoặc priority high/critical, trả tối đa 5 previews và tổng thật.
 
 UI chỉ gọi services, không chạy SQL. Home và dữ liệu record trả ephemeral; bảng neo chỉ điều hướng. CoreServices sống suốt client lifecycle để giữ pending actions giữa submit và approve; không restore pending approvals khi restart. UI giữ nguyên DTO field không sửa, expected version/updated_at và request_id khi retry. `CalendarService.list_day/list_week` nhận thêm status filter, tương thích API 3B. Tests/runbook tại [`PHASE_3C_VALIDATION.md`](PHASE_3C_VALIDATION.md).
+
+## 10. Hiện thực Phase 4A
+
+Revision `0003_reminders` nối tiếp `0002_core_management`. Chỉ tạo reminders/deliveries và unique index `(id, owner_id)` trên calendar_events, không rebuild bảng/cập nhật dữ liệu P1–3. Mục này mô tả checkpoint 4A (head khi đó là 0003); head hiện tại ở mục 11. DB vận hành chưa có trên máy triển khai nên chưa migrate thật.
+
+- `Reminder` theo schema ở mục 2, owner FK RESTRICT, FK ghép task/owner và event/owner. Indexes `(status, next_fire_at)`, `(owner_id, status)` và các cặp link/owner. Optional links có thể NULL, gán relationship không tự đổi owner.
+- `ReminderDelivery` theo mục 2; owner qua reminder cha. UNIQUE `(reminder_id, scheduled_fire_at)` và index `(status, scheduled_fire_at)`. Tất cả FK mới RESTRICT, không hard-delete/cascade lịch sử.
+- Mở rộng snooze bằng `delivery_kind=scheduled|snooze`, `parent_delivery_id`. FK ghép parent/reminder yêu cầu cùng reminder, unique parent chặn hai snooze từ một delivery, cấm tự làm parent. Có thể hoãn tiếp từ delivery snooze. Đây là schema, chưa có service/worker hoặc notification buttons.
+- ORM dùng UTCDateTime cho tất cả timestamps reminder/delivery. Recurrence JSON dùng SQL NULL khi không lặp; daily/weekly chứa `time` HH:MM, `timezone` IANA, weekly có thêm `weekday` 0–6. SQL CHECK bảo vệ enum/presence/target/count; domain và mapper kiểm tra JSON/timezone, tương quan weekday/loại lặp và lần gửi đầu.
+- `ReminderData`/`RecurrenceRule` là immutable; create service sau này phải gọi validate_create với backend clock, từ chối quá khứ/hiện tại. Đọc/lưu lịch sử vẫn hợp lệ. Chưa tính next occurrence hoặc đổi lịch gắn event; liên kết hiện dùng mốc tuyệt đối, không offset.
+- `last_error_code` allowlist `forbidden|http_error|network_error|timeout|unknown_error`; không nhận raw exception text. Private channel permission/allowlist và authorization actor cần service 4B; schema chỉ validate ID và quan hệ.
+- Downgrade 0003 → 0002 chỉ cho phép khi cả hai bảng P4 rỗng; offline downgrade bị từ chối. Không xóa dữ liệu để rollback. Backup/upgrade/restore và rollback khi ngắt migration đã có tests bảo toàn mọi cột P1–3.
+
+Kết quả lịch sử **551 tests pass** và schema 4A: [`PHASE_4A_VALIDATION.md`](PHASE_4A_VALIDATION.md). 4B/4C hiện thực ở mục 11; chưa có pending_actions P5.
+
+## 11. Hiện thực Phase 4B/4C
+
+Head **`0004_reminder_dispatch`** chỉ thêm cột nullable vào reminder_deliveries, giữ toàn bộ dữ liệu 4A:
+
+| Cột | Ý nghĩa |
+|---|---|
+| `retry_at` DATETIME UTC | Mốc retry, quiet delay hoặc lease expiry để phục hồi sau restart |
+| `claim_token` VARCHAR(36) | UUID mỗi claim; completion phải khớp token và claimed status |
+| `finished_reason` VARCHAR(20) NULL | Backend ghi `overdue|superseded|blocked|exhausted`; terminal không retry |
+| `acknowledged_at` DATETIME UTC NULL | Đã xử lý Done/Snooze; chặn replay trên notification |
+
+Không rebuild bảng hoặc sửa migration 0003. Downgrade 0004 → 0003 chỉ khi không có delivery history; offline downgrade bị từ chối. Tests xác minh old columns/rows giữ nguyên, metadata mới NULL và interruption rollback partial ADD COLUMN.
+
+Repository luôn owner-scope, delivery join reminder. Service kiểm tra config owner trước DB, transaction BEGIN IMMEDIATE, UUID5 creation idempotency và expected updated_at cho mutation. Shared process lock serialize mutation/send; không giữ DB transaction khi gọi Discord. Sensitive changes có in-memory pending approval TTL 5 phút/payload binding, không có executor AI.
+
+Worker tạo tối đa một row cho occurrence, claim trước gửi, retry capped và lease recovery; sent/message ID/next occurrence được ghi sau API success trong cùng transaction. Quiet/catch-up/recurrence/snooze policy tại [`PHASE_4BC_VALIDATION.md`](PHASE_4BC_VALIDATION.md). Discord send và SQLite commit không atomic; crash có thể làm gửi lại, không exactly-once. Snooze không thay rule/next_fire_at gốc, không tự dời reminder khi task/event sửa.
+
+UI và DynamicItem notification chỉ gọi services, không SQL; DB counts của Home đếm reminders active. Settings dùng lại user_settings DM/fallback/quiet columns; không cần env/dependency mới. Source/tests **617 pass**, DB/Discord thật còn chờ nghiệm thu.

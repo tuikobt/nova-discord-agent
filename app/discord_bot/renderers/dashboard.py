@@ -30,7 +30,7 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
             str(metric)
             if metric is not None
             else "Sắp ra mắt"
-            if name == "Reminders"
+            if name == "Reminders" and not MODULES[Screen.REMINDERS].available
             else "Xem trong bảng riêng"
         )
         embed.add_field(name=name, value=value, inline=True)
@@ -39,7 +39,7 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
         embed.add_field(
             name="Cách đếm",
             value=(
-                "Tasks không tính đã hủy; Projects không tính lưu trữ. Reminders chưa có backend."
+                "Tasks không tính đã hủy; Projects không tính lưu trữ; Reminders đếm đang chạy."
             ),
             inline=False,
         )
@@ -97,7 +97,10 @@ def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> disco
     preference = "Bật" if settings.dm_notifications_enabled else "Tắt"
     embed.add_field(
         name="Notification Preferences",
-        value=f"Tùy chọn DM đã lưu: {preference}. Tự động gửi: Chưa kích hoạt.",
+        value=(
+            f"Tùy chọn DM đã lưu: {preference}. "
+            "Chỉnh DM/kênh/quiet hours tại Reminders → Cài đặt gửi."
+        ),
         inline=False,
     )
     embed.add_field(
@@ -133,10 +136,16 @@ def render_help() -> discord.Embed:
     embed.add_field(
         name="Sắp ra mắt",
         value=(
-            "Reminders, AI và các module mở rộng: Sắp ra mắt. "
+            "AI và các module mở rộng: Sắp ra mắt. "
             "Tasks/Projects/Calendar có Thêm, chọn mục để Sửa, đổi trạng thái và Refresh."
         ),
         inline=False,
+    )
+    embed.add_field(
+        name="Reminders",
+        inline=False,
+        value="Thêm → chọn ngày/giờ, loại lặp và vị trí gửi → Lưu. "
+        "Cài đặt gửi quản lý DM, kênh riêng và giờ yên lặng; sửa/hủy cần Duyệt.",
     )
     embed.add_field(
         name="Hết phiên",
