@@ -39,6 +39,45 @@ from app.domain.enums import (
 from app.domain.reminders import RecurrenceRule, ReminderData, discord_id
 
 
+class PendingAction(Base):
+    __tablename__ = "pending_actions"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "idempotency_key", name="uq_pending_owner_key"),
+        CheckConstraint("status IN ('pending','rejected','expired','executed')", name="status"),
+        Index("ix_pending_owner_expiry", "owner_id", "expires_at"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(24), ForeignKey("users.discord_user_id"))
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    result_json: Mapped[dict | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    channel_id: Mapped[str | None] = mapped_column(String(24))
+    message_id: Mapped[str | None] = mapped_column(String(24))
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, onupdate=utc_now)
+
+
+class AgentUsage(Base):
+    __tablename__ = "agent_usage"
+    __table_args__ = (
+        CheckConstraint(
+            "charged_tokens >= 0 AND input_tokens >= 0 AND output_tokens >= 0", name="tokens"
+        ),
+        Index("ix_agent_usage_owner_created", "owner_id", "created_at"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(24), ForeignKey("users.discord_user_id"))
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    charged_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    settled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
 

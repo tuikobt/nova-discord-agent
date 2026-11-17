@@ -33,6 +33,19 @@ def inspect_runtime(values) -> tuple[Check, ...]:
     try:
         settings = Settings.from_mapping(values)
         checks.append(Check("config", True, "Required configuration is valid; secrets hidden."))
+        if values.get("AI_ENABLED", "false").lower() == "true":
+            checks.append(
+                Check(
+                    "ai",
+                    settings.ai.ready,
+                    "AI key/model and positive quotas configured; API not contacted."
+                    if settings.ai.ready
+                    else (
+                        "AI requested but key/model/quota missing or invalid; "
+                        "CRUD remains available."
+                    ),
+                )
+            )
     except ConfigurationError as error:
         field = next(
             (

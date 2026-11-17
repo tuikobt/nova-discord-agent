@@ -1,5 +1,24 @@
 # Database Design — NOVA
 
+## Quyết định triển khai P5 (2026-11-18)
+
+Migration `0005_agent` chỉ thêm `pending_actions` và `agent_usage`; không thay bảng P1–P4.
+Pending actions có owner FK, unique `(owner_id,idempotency_key)`, action/payload snapshot,
+receipt, channel/message binding, UTC expiry/created/updated và trạng thái
+`pending|rejected|expired|executed`. Duyệt và thực thi cùng transaction nên không lưu
+trạng thái approved trung gian. Payload chỉ lưu dữ liệu cần review, không raw chat.
+`agent_usage` ghi model, UTC timestamp, input/output tokens, charged/reserved tokens,
+settled; reservation chưa biết kết quả được giữ bảo thủ qua restart. Không tạo bảng
+conversation_messages; context RAM tối đa 20 messages/30 phút, có nút xóa.
+
+Giải quyết khác biệt mô tả reminder tương đối trong thiết kế ban đầu: P4 lưu giờ tuyệt đối.
+P5 không tự suy ra offset. Preview reschedule liệt kê reminder active/paused liên kết;
+owner chọn **giữ giờ nhắc** hoặc **dời cùng độ lệch bắt đầu event**. Shift cập nhật cả rule
+daily/weekly local, supersede delivery chưa gửi, giữ lịch sử đã gửi. Có claim đang hoạt động
+thì từ chối; dùng chung lock với worker. Toàn bộ bulk, reminders, audit và executed receipt
+commit nguyên tử, kiểm tra lại snapshots/versions/conflicts và timezone lúc duyệt.
+Các mô tả schema phía dưới là thiết kế lịch sử; quyết định này là contract P5 thực thi.
+
 **Mục tiêu:** Hệ thống CRUD bền vững, chuẩn bị sẵn cho AI Agent và scheduler. **Phase 0 chỉ thiết kế schema, chưa tạo database/migration.**
 
 ## 1. Quy ước chung

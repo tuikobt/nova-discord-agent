@@ -11,7 +11,7 @@
 | P2 | Dashboard UI | ✅ DONE (2026-10-23) | buttons/select/modal, module views, settings shell, persistent view |
 | P3 | Core Management | 🟨 Nghiệm thu tự động đạt — Discord live chưa xác minh | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ✅ DONE (2026-11-17, người dùng nghiệm thu) | Reminder Engine/UI, 625 tests, DB/Discord thật và DM/Đã làm |
-| P5 | AI Agent | ⬜ NOT STARTED | natural-language DM + OpenAI tool calling + confirmations |
+| P5 | AI Agent | ✅ DONE (2026-11-18, người dùng nghiệm thu) | AI DM/Responses tools, durable approvals, usage limits, 687 tests và read/create-task live |
 | P6 | Memory & Proactive Automation | ⬜ NOT STARTED | memory controls, planner suggestions, morning/daily/weekly reports |
 | P7 | Expansion & Deployment | ⬜ NOT STARTED | Goals/Finance/Habits/Notes, integrations optional, Docker/VPS |
 
@@ -160,7 +160,29 @@ Phạm vi bằng chứng: Codex kiểm chứng trực tiếp DB/Gateway/API send
 - [x] Duplicate claims/clicks không nhân đôi delivery records (tự động); crash-window có thể gửi Discord trùng được ghi rõ.
 - [x] DM/private fallback fail closed, chặn kênh public/role/member khác (mock transport/ACL tests; chưa ghi nhận live fallback riêng).
 
-## 7. Phase 5 — AI Agent
+## 7. Phase 5 — AI Agent ✅
+
+**Nghiệm thu 2026-11-18:** owner cấu hình OpenAI `gpt-6-luna` và xác nhận
+“tuyệt vời nó đã hoạt dộng rồi” sau hướng dẫn thử đọc dữ liệu và tạo/duyệt task.
+Codex đã kiểm chứng Responses API thật gọi `get_today_overview` thành công,
+bot online, và DB có một `create_task` pending action ở trạng thái `executed`
+kèm một audit `agent.create_task/success`. Integrity OK, không vi phạm FK,
+head `0005_agent`. Bộ tự động gần nhất **687 passed in 40.45s**, lint/format/
+compile đạt. Lần chốt này chỉ cập nhật tài liệu và đọc metadata DB, không chạy
+lại tests hoặc gọi API thêm. Báo cáo: [`PHASE_5_VALIDATION.md`](PHASE_5_VALIDATION.md).
+
+**Phạm vi bằng chứng:** owner xác nhận hoạt động nhưng không liệt kê riêng mọi
+thiết bị/kịch bản. Không ghi reschedule/bulk, linked-reminder keep/shift, expiry,
+stale, non-owner, AI failure và restart approvals đã thử live riêng; các luồng này
+được kiểm thử tự động bằng SQLite/mock Discord/OpenAI. P5 DONE theo bộ tự động,
+luồng đọc/ghi thực tế và nghiệm thu owner; **không tự bắt đầu P6**.
+
+**Quyết định P5:** mọi AI write L1/L2 dùng strict preview → click Duyệt. Context RAM
+tối đa 20 messages/30 phút; không memory dài hạn. Pending TTL 15 phút, owner/message/
+channel/version/conflict binding, idempotent receipt và audit cùng transaction.
+Reminders liên kết có lựa chọn keep/shift rõ ràng, chung lock worker, không suy ra
+offset tự động. API giới hạn 4 rounds/8 tools/60s, request/token quotas ngày UTC;
+usage không rõ giữ reservation. Chi phí theo tiền vẫn theo OpenAI Usage/budget.
 
 ### Work packages
 
@@ -172,12 +194,12 @@ Phạm vi bằng chứng: Codex kiểm chứng trực tiếp DB/Gateway/API send
 
 ### Acceptance P5
 
-- [ ] Hỏi “Hôm nay có việc gì?” trả dữ liệu đúng từ DB.
-- [ ] “Tạo task X...” tạo qua tool nếu đủ rõ, xác nhận hoàn thành.
-- [ ] “Dời toàn bộ lịch chiều...” chỉ tạo đề xuất chờ duyệt.
-- [ ] Người ngoài / prompt injection không gọi được tool trái phép.
-- [ ] AI lỗi không làm hỏng CRUD UI, không trả “thành công” giả.
-- [ ] Chi phí theo dõi được, có giới hạn tối thiểu.
+- [x] Hỏi “Hôm nay có việc gì?” trả dữ liệu từ DB: tool thật và tests owner-scoped.
+- [x] “Tạo task X...” qua tool → preview → Duyệt → DB executed/audit success; owner xác nhận hoạt động. Bản đầu dùng strict cho cả single write.
+- [x] “Dời toàn bộ lịch chiều...” chỉ tạo đề xuất chờ duyệt; atomic approve, stale/conflict/keep-shift được kiểm thử tự động.
+- [x] Người ngoài / prompt injection bị chặn qua owner/tool/schema/policy gates (tự động).
+- [x] API timeout/error không ghi nghiệp vụ, không giả receipt; CRUD/reminder hoạt động độc lập (tự động).
+- [x] Tokens/requests/reservations theo model được lưu, quota/rate/loop limits có tests; usage thực tế có records. Không báo ngân sách tiền chính xác khi chưa cấu hình giá.
 
 ## 8. Phase 6 — Personal Memory & Automation
 
@@ -239,3 +261,5 @@ Phạm vi bằng chứng: Codex kiểm chứng trực tiếp DB/Gateway/API send
 | 2026-10-23 | P3B | Hoàn tất repositories/services/validation/overlap/manual approvals; 340 tests pass; schema giữ 0002; chưa nối UI, dừng trước 3C |
 | 2026-10-23 | P3C | Source UI CRUD và confirmations/counts đã triển khai; rà soát UX thêm draft/date-time picker/select; 419 tests pass; chờ nghiệm thu Discord Desktop/Mobile, không đánh dấu toàn P3 DONE và chưa bắt đầu P4 |
 | 2026-11-17 | P4 | 4A/4B/4C hoàn tất; 625 tests pass, DB mới Windows theo yêu cầu, bot online và reminder DM gửi sau giờ hẹn khoảng 6,7 giây; Đã làm được ghi nhận, người dùng xác nhận kiểm thử xong; P4 DONE, chưa bắt đầu P5 |
+| 2026-11-18 | P5 | Hoàn thành AI DM/Responses tools, strict durable approvals/context/usage; 687 tests pass; migration bảo toàn 8 bảng cũ; OpenAI read thật, create_task executed/audit success, owner xác nhận hoạt động; P5 DONE, chưa bắt đầu P6 |
+| 2026-11-18 | Security review trước P6 | Rà soát Git/index/history và biên dữ liệu LLM; thêm pre-push/CI, credential redaction, tool minimization và prompt-output guard; xem SECURITY_REVIEW_2026-11-18.md. Không bắt đầu P6 |

@@ -1,6 +1,12 @@
 # AI Agent & Tool Contract — NOVA
 
-**Phase:** tích hợp từ P5. **Trạng thái:** đặc tả, chưa có function thực thi.
+**Phase:** tích hợp từ P5. Registry thực thi tại `app/agent/tool_registry.py`;
+gateway và backend validate độc lập. P5 đầu dùng policy strict cho mọi write L1/L2:
+tool `create_*`/`complete_task` cũng chỉ tạo preview; owner bấm Duyệt mới ghi.
+Chưa cấp tool approve/delete/external. `create_reminder` dùng DM; channel cấu hình
+qua UI P4. Bulk tối đa 10 đối tượng, reschedule cũng tối đa 10. Pending TTL 15 phút;
+duyệt và execution cùng transaction, không cần trạng thái approved lưu riêng.
+Chọn read tools và chỉ mở write tools theo yêu cầu ở từng lượt; unknown tool bị deny.
 
 ## 1. Khái niệm
 

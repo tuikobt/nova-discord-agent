@@ -1,0 +1,2 @@
+# Shell hooks must keep LF when checked out by Git for Windows.
+.githooks/* text eol=lf

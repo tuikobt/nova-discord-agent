@@ -67,6 +67,7 @@ MODULES: dict[Screen, Module] = {
         "AI Assistant",
         "Trò chuyện tự nhiên với NOVA qua DM.",
         ("Hỏi đáp bằng tiếng Việt", "Tra cứu việc và lịch", "Đề xuất có xác nhận"),
+        available=True,
     ),
     Screen.GOALS: Module(
         "Goals",

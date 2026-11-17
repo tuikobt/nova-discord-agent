@@ -1,5 +1,28 @@
 # Discord UI Specification — NOVA
 
+## P5 — AI Assistant DONE, owner xác nhận hoạt động 2026-11-18
+
+Đã xác minh OpenAI đọc dữ liệu và một create-task proposal executed/audit success;
+owner xác nhận hoạt động. Các biến thể UI khác có tests tự động, không tự ghi đã
+thử live riêng. Xem PHASE_5_VALIDATION.md cho phạm vi nghiệm thu.
+
+AI Assistant mở panel riêng với **Mở DM**, **Xóa ngữ cảnh**, **Sử dụng AI**, Back/Refresh.
+AI bật bằng env; trạng thái chưa cấu hình vẫn dùng được toàn bộ CRUD/reminders.
+DM chỉ xử lý owner, báo đang xử lý trước lời gọi lâu, từ chối turn mới nếu turn cũ
+chưa xong. Không đọc nội dung messages server/bot/người khác.
+
+AI đọc dữ liệu thật qua tools. Thiếu giờ/ngày thì hỏi, có thể trả lời bổ sung trong
+cùng hội thoại; nhắn “bỏ qua” hoặc bấm Xóa ngữ cảnh để bỏ yêu cầu đang hỏi dở.
+Mọi write dùng chế độ strict: bản xem trước phân trang đầy đủ, Duyệt chỉ xuất hiện
+ở trang cuối, Hủy không ghi dữ liệu nghiệp vụ. Với reschedule có reminder liên kết,
+hiện cả giờ giữ nguyên và giờ dời; owner chọn một trong hai nút Duyệt tương ứng.
+Nếu trùng lịch, preview liệt kê rõ; Duyệt là chấp nhận xung đột đã xem. Có xung đột
+mới/version đổi/claim reminder đang gửi thì từ chối và yêu cầu đề xuất mới.
+
+Nút đề xuất khôi phục qua DynamicItem sau restart, gắn owner/channel/message và TTL
+15 phút. Biên nhận chỉ gửi sau DB commit. Context mất khi restart, còn proposals,
+receipts và usage trong DB; có thể duyệt proposal khi AI tắt. Không tạo UI P6/P7.
+
 **Quyết định:** Discord là *product UI*, không xây website. Chủ yếu dùng **DM + persistent dashboard message trong server**, điều hướng bằng `discord.ui.View`, Buttons, Select Menus và Modals. MVP sử dụng **legacy embeds + View**, không trộn với Components V2 trong cùng message.
 
 ## 1. Thông tin server
