@@ -272,6 +272,13 @@ Log chỉ ghi metadata vận hành ra console, không bật SDK debug/SQL loggin
 
 ## Những quyết định đã chốt
 
+Trước khi push, chạy `.\.venv\Scripts\python.exe -m app.security_check --history --staged`.
+Máy clone mới bật hook bằng `git config --local core.hooksPath .githooks`; máy review
+đã bật. Linux cần `chmod +x .githooks/pre-push`. Không đưa key/database/backup vào Git.
+GitHub CI check không ngăn lần upload
+đầu tiên; bật thêm Secret scanning/Push protection trên GitHub khi được hỗ trợ.
+Giải thích prompt và kết quả review tại [báo cáo bảo mật trước P6](docs/SECURITY_REVIEW_2026-11-18.md).
+
 - **Một chủ tài khoản** (allowlist Discord Owner ID), server riêng, **DM là giao diện trò chuyện chính**.
 - Giao diện server có **4 kênh chức năng** để giảm sự phức tạp; không tạo hàng chục channel.
 - **Zero-command by default:** người dùng có thể chọn nút/menu, slash commands chỉ để vào nhanh.

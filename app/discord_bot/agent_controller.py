@@ -13,6 +13,7 @@ from app.agent.usage import UsageService
 from app.discord_bot.checks import authorize_interaction
 from app.domain.errors import DomainError
 from app.domain.time import zone
+from app.security import SecretFilter
 from app.services.pending_action_service import PendingActionService
 
 logger = logging.getLogger(__name__)
@@ -156,7 +157,13 @@ class AgentController:
         gateway = ToolGateway(sessions, self.authorization, client.core_services, self.pending)
         transport = ResponsesClient(self.config) if self.config.ready else None
         self.orchestrator = AgentOrchestrator(
-            self.config, self.authorization, gateway, self.pending, self.usage, transport
+            self.config,
+            self.authorization,
+            gateway,
+            self.pending,
+            self.usage,
+            transport,
+            secrets=SecretFilter((client.settings.discord_token, self.config.key)),
         )
 
     async def message(self, message):
@@ -202,7 +209,9 @@ class AgentController:
             else:
                 for chunk in pages(result["text"]):
                     await message.channel.send(
-                        chunk, allowed_mentions=discord.AllowedMentions.none()
+                        chunk,
+                        allowed_mentions=discord.AllowedMentions.none(),
+                        suppress_embeds=True,
                     )
         except Exception as error:
             logger.warning("agent_turn_failed", extra={"error_type": type(error).__name__})

@@ -1,0 +1,10 @@
+#!/bin/sh
+# No network, API keys or raw matches in output. One Git hook shared by Windows/Linux.
+set -eu
+if [ -x .venv/Scripts/python.exe ]; then
+    exec .venv/Scripts/python.exe -m app.security_check --history --staged
+elif [ -x .venv/bin/python ]; then
+    exec .venv/bin/python -m app.security_check --history --staged
+else
+    exec python -m app.security_check --history --staged
+fi

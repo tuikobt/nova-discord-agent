@@ -1,0 +1,22 @@
+name: Repository safety
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secret-and-private-file-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Official actions/checkout v7.0.1, pinned to an immutable reviewed revision.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Standard-library-only check: no bot token, OpenAI key or pip install needed.
+      - name: Scan source, index and reachable history
+        run: python3 -m app.security_check --history --staged

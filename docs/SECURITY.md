@@ -1,5 +1,12 @@
 # Security & Privacy — NOVA
 
+**Review trước P6 (2026-11-18):** xem [báo cáo bảo mật](SECURITY_REVIEW_2026-11-18.md)
+cho phạm vi scan Git, prompt/public-source boundary, dữ liệu gửi model và các giới hạn.
+Đã thêm local pre-push hook + CI check, lọc credential cả Discord/OpenAI, giảm tool
+metadata, chặn một số prompt extraction và kiểm tra output. Prompt không chứa secrets
+và không dùng làm lớp phân quyền; backend mới quyết định. Bộ lọc không đảm bảo tuyệt
+đối chống lộ prompt/secret. Không tự triển khai P6 hoặc push các sửa này.
+
 **P5:** OpenAI chỉ được gọi sau owner guard và khi AI_ENABLED=true, key/model đủ.
 Chỉ DM được đọc; không bật privileged Message Content intent vì Discord cho bot đọc
 content DM với chính app (xem nguồn Gateway dưới đây). Gửi context/tool data liên quan
