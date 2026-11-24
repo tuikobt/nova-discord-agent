@@ -180,6 +180,11 @@ sequenceDiagram
 - **ADR-05:** Owner-only ngay từ Phase 1, không phát triển multi-tenant.
 - **ADR-06:** DM chính, server 4 channel; private panel cho thao tác riêng.
 - **ADR-07:** Reminder có cơ sở dữ liệu làm nguồn chân lý (không lập lịch chỉ trong RAM).
+- **ADR-08 (P6):** Personal/Planner/Report/Automation services tách Discord;
+  automation polling riêng, một process SQLite. Memory chỉ được dùng sau owner
+  duyệt; AI chỉ chọn preference mềm, backend kiểm tra tất cả block và pending
+  approval commit. Báo cáo thống kê từ DB; background AI có trần 20% quota chung.
+  Chi tiết runtime/rollback tại [PHASE_6_VALIDATION](PHASE_6_VALIDATION.md).
 
 ## 10. Tài liệu
 

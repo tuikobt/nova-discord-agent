@@ -71,6 +71,9 @@ class AgentUsage(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     owner_id: Mapped[str] = mapped_column(String(24), ForeignKey("users.discord_user_id"))
     model: Mapped[str] = mapped_column(String(128), nullable=False)
+    purpose: Mapped[str] = mapped_column(
+        String(20), default="dm", server_default="dm", nullable=False
+    )
     charged_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
     input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     output_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
@@ -84,6 +87,79 @@ class User(Base):
     discord_user_id: Mapped[str] = mapped_column(String(24), primary_key=True)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False)
     locale: Mapped[str] = mapped_column(String(10), default="vi-VN", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+
+
+class MemoryEntry(Base):
+    __tablename__ = "memory_entries"
+    __table_args__ = (
+        CheckConstraint("kind IN ('preference','routine','profile')", name="kind"),
+        CheckConstraint("version > 0", name="version"),
+        Index("ix_memory_owner_active", "owner_id", "is_deleted", "use_for_ai"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(24), ForeignKey("users.discord_user_id"), nullable=False
+    )
+    content: Mapped[str | None] = mapped_column(String(1000))
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    source: Mapped[str | None] = mapped_column(String(128))
+    confirmed_by_owner: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    use_for_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
+
+class AutomationPolicy(Base):
+    __tablename__ = "automation_policies"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "kind", name="uq_automation_policy_owner_kind"),
+        CheckConstraint("kind IN ('preferences','morning','daily','weekly')", name="kind"),
+        CheckConstraint("version > 0", name="version"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(24), ForeignKey("users.discord_user_id"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    config_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+
+
+class AutomationRun(Base):
+    __tablename__ = "automation_runs"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "kind", "period_key", name="uq_automation_run_period"),
+        CheckConstraint("kind IN ('morning','daily','weekly')", name="kind"),
+        CheckConstraint("status IN ('pending','claimed','sent','failed','skipped')", name="status"),
+        CheckConstraint("attempt_count >= 0", name="attempt_count"),
+        Index("ix_automation_run_due", "status", "scheduled_at"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(24), ForeignKey("users.discord_user_id"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    period_key: Mapped[str] = mapped_column(String(10), nullable=False)
+    timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    scheduled_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    policy_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    claim_token: Mapped[str | None] = mapped_column(String(36))
+    claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    retry_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    payload_json: Mapped[dict | None] = mapped_column(JSON)
+    error_code: Mapped[str | None] = mapped_column(String(30))
+    discord_message_id: Mapped[str | None] = mapped_column(String(24))
+    channel_id: Mapped[str | None] = mapped_column(String(24))
+    sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
 
 

@@ -33,6 +33,10 @@ class ToolGateway(CoreService):
         args = validate(name, args)
         if name in WRITES:
             return dict(pending=await self.pending.propose(actor, name, args, turn=turn))
+        if name == "search_memory":
+            return await self.core.personal.memories(actor, query=args["query"], for_ai=True)
+        if name == "plan_tasks":
+            return await self.core.planner.draft(actor, args["date"], args["days"])
         core = self.core
         tz = (await self.preferences(actor, ["timezone"]))["timezone"]
         if name == "list_tasks":

@@ -76,7 +76,9 @@ def render_module(screen: Screen, page: FeaturePage) -> discord.Embed:
     return embed
 
 
-def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> discord.Embed:
+def render_settings(
+    settings: SettingsSnapshot, *, saved: bool = False, personal=None
+) -> discord.Embed:
     embed = discord.Embed(
         title="NOVA — Settings",
         colour=discord.Colour.blurple(),
@@ -88,12 +90,25 @@ def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> disco
         inline=False,
     )
     embed.add_field(name="Timezone", value=settings.timezone, inline=False)
-    for name, value in (
-        ("Morning Briefing", settings.morning_briefing_time),
-        ("Daily Review", settings.daily_review_time),
-    ):
-        configured = value.strftime("%H:%M") if value else "Chưa đặt giờ"
-        embed.add_field(name=name, value=f"{configured} • Chưa kích hoạt", inline=False)
+    if personal is not None:
+        for kind, name in (
+            ("morning", "Morning Briefing"),
+            ("daily", "Daily Review"),
+            ("weekly", "Weekly Review"),
+        ):
+            policy = personal["policies"][kind]
+            embed.add_field(
+                name=name,
+                value=f"{policy['time']} • {'Bật' if policy['enabled'] else 'Tắt'}",
+                inline=False,
+            )
+    else:
+        for name, value in (
+            ("Morning Briefing", settings.morning_briefing_time),
+            ("Daily Review", settings.daily_review_time),
+        ):
+            configured = value.strftime("%H:%M") if value else "Chưa đặt giờ"
+            embed.add_field(name=name, value=f"{configured} • Chưa kích hoạt", inline=False)
     preference = "Bật" if settings.dm_notifications_enabled else "Tắt"
     embed.add_field(
         name="Notification Preferences",
@@ -108,7 +123,8 @@ def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> disco
     )
     embed.add_field(
         name="Trạng thái",
-        value="Có thể sửa Timezone. Các cài đặt mở rộng: Sắp ra mắt.",
+        value="Sửa Timezone tại đây. Chọn Automation & Planner để chỉnh báo cáo và giờ làm; "
+        "Memory để quản lý ghi nhớ.",
         inline=False,
     )
     return embed
@@ -151,6 +167,12 @@ def render_help() -> discord.Embed:
         name="Hết phiên",
         value="Panel riêng tư hết hạn sau 10 phút. Điều hướng sẽ làm mới phiên. "
         "Mở lại bằng nút trên bảng neo hoặc /menu.",
+        inline=False,
+    )
+    embed.add_field(
+        name="Memory / Reports",
+        value="Các module khác → Memory để xem/sửa/xóa ghi nhớ. "
+        "Reports để cấu hình giờ làm, lập kế hoạch và bật/tắt báo cáo. Thay đổi cần Duyệt.",
         inline=False,
     )
     return embed

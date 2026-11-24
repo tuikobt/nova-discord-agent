@@ -16,7 +16,8 @@ class AgentPanel(OwnerView):
             description=("AI sẵn sàng. " if ready else "AI chưa bật/cấu hình. ")
             + "Nhắn DM: ‘Hôm nay có việc gì?’, ‘Tạo task học Docker’, "
             "‘Nhắc tôi lúc 18h ngày mai’.\nMọi thay đổi cần xem đề xuất và bấm Duyệt. "
-            "Hội thoại chỉ giữ trong RAM tối đa 30 phút, mất khi restart.",
+            "Hội thoại chỉ giữ trong RAM tối đa 30 phút, mất khi restart. "
+            "Memory dài hạn chỉ lưu sau khi bạn Duyệt; xem/sửa/xóa ở Memory.",
         )
         view = cls(dashboard)
         if dashboard.client.user:
@@ -27,6 +28,8 @@ class AgentPanel(OwnerView):
             )
         view.add_item(NavigateButton(dashboard, Screen.HOME, label="Back", row=1))
         view.add_item(NavigateButton(dashboard, Screen.AI, label="Refresh", row=1))
+        view.add_item(NavigateButton(dashboard, Screen.MEMORY, label="Memory", row=2))
+        view.add_item(NavigateButton(dashboard, Screen.REPORTS, label="Planner & Reports", row=2))
         return embed, view
 
     @discord.ui.button(label="Xóa ngữ cảnh", row=1)

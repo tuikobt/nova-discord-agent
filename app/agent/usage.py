@@ -9,10 +9,12 @@ from app.services.core_service import CoreService
 
 
 class UsageService(CoreService):
-    async def reserve(self, actor, config, tokens):
+    async def reserve(self, actor, config, tokens, *, purpose="dm"):
         owner = self.authorize(actor)
         if type(tokens) is not int or tokens <= 0:
             raise ValidationError("Reservation không hợp lệ.")
+        if purpose not in {"dm", "background"}:
+            raise ValidationError("Mục đích usage không hợp lệ.")
         today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
         async with self.transaction(write=True) as session:
             count, charged = (
@@ -37,9 +39,34 @@ class UsageService(CoreService):
                 or recent >= 12
             ):
                 raise ValidationError("AI đã chạm giới hạn sử dụng. Thử lại sau hoặc dùng /menu.")
+            if purpose == "background":
+                bg_count, bg_tokens = (
+                    await session.execute(
+                        select(
+                            func.count(), func.coalesce(func.sum(AgentUsage.charged_tokens), 0)
+                        ).where(
+                            AgentUsage.owner_id == owner,
+                            AgentUsage.created_at >= today,
+                            AgentUsage.purpose == "background",
+                        )
+                    )
+                ).one()
+                if (
+                    bg_count >= config.daily_requests // 5
+                    or bg_tokens + tokens > config.daily_tokens // 5
+                ):
+                    raise ValidationError(
+                        "Automation đã chạm 20% quota AI ngày; dùng bản tin dữ liệu."
+                    )
             key = str(uuid4())
             session.add(
-                AgentUsage(id=key, owner_id=owner, model=config.model, charged_tokens=tokens)
+                AgentUsage(
+                    id=key,
+                    owner_id=owner,
+                    model=config.model,
+                    charged_tokens=tokens,
+                    purpose=purpose,
+                )
             )
         return key
 

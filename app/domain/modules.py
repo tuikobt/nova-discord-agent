@@ -113,7 +113,14 @@ MODULES: dict[Screen, Module] = {
 }
 
 QUICK_SCREENS = (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.REMINDERS, Screen.AI)
-for _screen in (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.CALENDAR):
+for _screen in (
+    Screen.TODAY,
+    Screen.TASKS,
+    Screen.PROJECTS,
+    Screen.CALENDAR,
+    Screen.MEMORY,
+    Screen.REPORTS,
+):
     MODULES[_screen] = replace(MODULES[_screen], available=True)
 MORE_SCREENS = (
     Screen.CALENDAR,

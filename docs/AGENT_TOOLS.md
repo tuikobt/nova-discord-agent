@@ -109,7 +109,24 @@ Discord DM → Owner auth → Context builder → Model (có tool schema)
 
 **P5 (short-term):** chỉ gửi cho model vài tin nhắn hội thoại gần nhất và dữ liệu liên quan được tool trả về; tránh gửi cả lịch sử không cần thiết. Lưu chat có retention ngắn/cấu hình; ưu tiên hạn chế lưu raw chat nếu chưa cần.
 
-**P6 (long-term):** memory có `content`, `type`, `source`, `confidence`, `confirmed_by_owner`, `created_at`, `last_used_at`, `is_deleted`; bot có chức năng xem/sửa/xóa. **Không lưu các suy đoán nhạy cảm như sự thật.**
+**P6 (long-term):** memory có `content`, `kind` (preference/routine/profile),
+`source`, `confirmed_by_owner`, `use_for_ai`, `version`, `created_at`, `updated_at`,
+`last_used_at`, `is_deleted`. `kind` là tên persistence của khái niệm type trong
+thiết kế ban đầu. Không dùng điểm confidence AI làm quyền xác nhận. Candidates
+ở pending_actions; MemoryEntry chỉ tạo sau owner duyệt. **Không lưu suy đoán
+nhạy cảm như sự thật.** Xem [hợp đồng P6](PHASE_6_VALIDATION.md).
+
+Tools P6: `search_memory`, `plan_tasks` chỉ đọc; `propose_memory`, `update_memory`,
+`delete_memory`, `propose_schedule_tasks` chỉ tạo preview. `configure_work` và
+`configure_automation` dùng UI, không mở cho model hội thoại. Backend kiểm tra
+schema/owner và validation nghiệp vụ, model không được gọi decide/bind.
+
+Gợi ý memory tối đa một/lượt, nguồn DM do adapter gắn, nội dung phải trích lời
+owner; pending key riêng để vẫn xử lý yêu cầu task chính. Context tối đa 5 mục
+confirmed/use_for_ai, là user data không phải instructions. Sửa/tắt/xóa làm
+trống context RAM và vô hiệu hóa kết quả đang xử lý từ ngữ cảnh cũ. Planner AI
+chỉ chọn soft preference; mọi lịch mới phải qua owner approval và kiểm tra
+conflict/version trong transaction. API/quota lỗi dùng dữ liệu/quy tắc backend.
 
 ## 8. Bài test Agent bắt buộc P5
 

@@ -2,10 +2,14 @@
 
 from app.db.repositories.dashboard_repository import DashboardRepository
 from app.domain.core import TaskRecord, to_record
+from app.services.automation_service import AutomationService
 from app.services.calendar_service import CalendarService, local_window
 from app.services.core_service import CoreService
+from app.services.personal_service import PersonalService
+from app.services.planner_service import PlannerService
 from app.services.project_service import ProjectService
 from app.services.reminder_service import ReminderService
+from app.services.report_service import ReportService
 from app.services.task_service import TaskService
 
 
@@ -31,3 +35,7 @@ class CoreServices:
         self.calendar = CalendarService(sessions, authorization)
         self.summary = SummaryService(sessions, authorization)
         self.reminders = ReminderService(sessions, authorization)
+        self.personal = PersonalService(sessions, authorization, self)
+        self.planner = PlannerService(sessions, authorization, self.personal)
+        self.reports = ReportService(sessions, authorization, self.personal, self.planner)
+        self.automation = AutomationService(sessions, authorization, self.personal, self.reports)

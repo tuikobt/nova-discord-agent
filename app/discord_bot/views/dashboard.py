@@ -194,6 +194,10 @@ class PanelView(OwnerView):
                 self.add_item(NavigateButton(controller, target, label=target.value.title(), row=0))
         if screen == Screen.SETTINGS and not error:
             self.add_item(EditTimezoneButton(controller))
+            self.add_item(
+                NavigateButton(controller, Screen.REPORTS, label="Automation & Planner", row=1)
+            )
+            self.add_item(NavigateButton(controller, Screen.MEMORY, label="Memory", row=1))
         elif screen in MODULES and screen != Screen.SETTINGS and not error:
             pages = paginate(MODULES[screen].features, page)
             if pages.total > 1:

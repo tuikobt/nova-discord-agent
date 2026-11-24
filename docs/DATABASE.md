@@ -178,8 +178,9 @@ Index `(owner_id, created_at)`.
 | Bảng | Phase | Ghi chú |
 |---|---|---|
 | `conversation_messages` | P5 | Context giới hạn số lượng, retention opt-in |
-| `memory_entries` | P6 | Fact/preference có nguồn gốc, đã xác nhận hay chỉ gợi ý |
-| `automation_runs` | P6 | Theo dõi daily/weekly jobs, chống gửi lại cùng ngày |
+| `memory_entries` | P6 | Memory có nguồn, chỉ lưu sau owner duyệt; gợi ý nằm ở pending_actions |
+| `automation_policies` | P6 | Cấu hình giờ làm và ba lịch báo cáo opt-in, có version |
+| `automation_runs` | P6 | Theo dõi daily/weekly jobs, chống gửi lại cùng kỳ |
 | `goals` | P7 | Objective/deadline/status |
 | `habit_definitions`, `habit_logs` | P7 | Thói quen và check-ins |
 | `finance_transactions`, `budgets` | P7 | Ghi thu chi thủ công, **không đồng bộ ngân hàng tự động** |
@@ -279,3 +280,36 @@ Repository luôn owner-scope, delivery join reminder. Service kiểm tra config 
 Worker tạo tối đa một row cho occurrence, claim trước gửi, retry capped và lease recovery; sent/message ID/next occurrence được ghi sau API success trong cùng transaction. Quiet/catch-up/recurrence/snooze policy tại [`PHASE_4BC_VALIDATION.md`](PHASE_4BC_VALIDATION.md). Discord send và SQLite commit không atomic; crash có thể làm gửi lại, không exactly-once. Snooze không thay rule/next_fire_at gốc, không tự dời reminder khi task/event sửa.
 
 UI và DynamicItem notification chỉ gọi services, không SQL; DB counts của Home đếm reminders active. Settings dùng lại user_settings DM/fallback/quiet columns; không cần env/dependency mới. Source/tests **617 pass**, DB/Discord thật còn chờ nghiệm thu.
+
+
+## 12. Persistence Phase 6
+
+Revision `0006_personal` nối tiếp `0005_agent`, chỉ thêm ba bảng và cột
+`agent_usage.purpose` non-null mặc định `dm`. Dữ liệu P1–5 không rebuild hoặc
+backfill nghiệp vụ. Timestamps app dùng UTCDateTime; giờ HH:MM/weekday trong
+policy là giờ local theo timezone Settings, không phải UTC timestamp.
+
+| Bảng | Nội dung/ràng buộc chính |
+|---|---|
+| memory_entries | UUID PK, owner FK, content nullable (tombstone), kind preference/routine/profile; source backend; confirmed_by_owner, use_for_ai, is_deleted; version > 0; created/updated/last_used UTC |
+| automation_policies | UUID PK, owner FK, kind preferences/morning/daily/weekly; unique(owner,kind); enabled false khi chưa duyệt; config_json đã validate, version > 0, updated_at |
+| automation_runs | UUID PK, owner FK, kind/period_key/timezone, UTC scheduled/expires/claimed/retry/sent/created; policy_version; status pending/claimed/sent/failed/skipped; attempt_count >= 0; claim_token; payload/error/message/channel metadata; unique(owner,kind,period_key) |
+
+Memory candidates nằm trong pending_actions. Bảng memory chỉ tạo khi owner
+Duyệt. Xóa làm rỗng content/source/last_used_at, tăng version, giữ tombstone và
+xóa các bản sao trong pending actions. Không purge audit metadata hoặc backup cũ.
+Cột kind thay tên khái niệm type; xác nhận dựa trên owner, không dựa confidence AI.
+
+Work policy lưu ngày làm/giờ làm/khoảng nghỉ/gợi ý memory; sau duyệt đồng bộ giờ
+làm vào UserSettings cũ. Automation policy là nguồn chính cho giờ/bật/tắt báo
+cáo P6; không ngầm bật dựa vào các cột briefing giờ P1. Chưa cấu hình trả mặc định
+ảo và không ghi row, thuận tiện rollback trước khi dùng P6.
+
+Run period là ngày local, weekly là ngày thứ Hai đầu tuần. Giữ khóa/metadata kể
+cả khi payload bị purge sau 30 ngày. Không tạo lại kỳ đã sent/skipped/failed khi
+owner đổi giờ hoặc restart. Lease 2 phút, 3 attempts, retry 1/5 phút, catch-up 2h;
+quiet hours trì hoãn trong cửa sổ. Không cam kết exactly-once ở Discord.
+
+Downgrade về 0005 chỉ khi ba bảng rỗng và không có agent_usage background. Có dữ
+liệu thì từ chối; không tự delete để downgrade. Backup/restore/drill, tests và
+phạm vi nghiệm thu ở [PHASE_6_VALIDATION](PHASE_6_VALIDATION.md).

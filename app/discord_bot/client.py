@@ -10,8 +10,11 @@ from app.discord_bot.checks import OwnerCommandTree
 from app.discord_bot.commands.foundation import FoundationCommands
 from app.discord_bot.dashboard_controller import DashboardController
 from app.discord_bot.reminder_sender import DiscordReminderSender
+from app.discord_bot.report_sender import DiscordReportSender
+from app.discord_bot.views.personal import ReportButton
 from app.discord_bot.views.reminders import NotificationButton
 from app.domain.authorization import OwnerAuthorization
+from app.scheduler.automation import AutomationDispatcher
 from app.scheduler.dispatcher import ReminderDispatcher
 from app.services.core_management import CoreServices
 from app.services.settings_service import SettingsService
@@ -40,6 +43,11 @@ class NovaClient(discord.Client):
             self, self.authorization, self.settings_service, self.core_services
         )
         self.agent = AgentController(self)
+        self.core_services.personal.channel_validator = self.reminder_sender.validate_channel
+        self.report_sender = DiscordReportSender(self, self.reminder_sender)
+        self.automation_dispatcher = AutomationDispatcher(
+            self.core_services.automation, self.report_sender
+        )
         self.foundation = FoundationCommands(self.authorization, self.dashboard)
         self.foundation.register(self.tree)
 
@@ -49,6 +57,7 @@ class NovaClient(discord.Client):
         await self.dashboard.restore()
         self.add_dynamic_items(NotificationButton)
         self.add_dynamic_items(AgentButton)
+        self.add_dynamic_items(ReportButton)
         if self.settings.guild_id is not None:
             guild = discord.Object(id=self.settings.guild_id)
             self.tree.copy_global_to(guild=guild)
@@ -61,6 +70,7 @@ class NovaClient(discord.Client):
         logger.info("bot_online")
         if self.is_ready():
             self.reminder_dispatcher.start()
+            self.automation_dispatcher.start()
 
     async def on_disconnect(self) -> None:
         logger.warning("gateway_disconnected")
@@ -88,6 +98,7 @@ class NovaClient(discord.Client):
         )
 
     async def close(self) -> None:
+        await self.automation_dispatcher.stop()
         await self.reminder_dispatcher.stop()
         await self.agent.close()
         try:

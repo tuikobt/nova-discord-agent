@@ -49,6 +49,52 @@ REMINDER = obj(
 )
 CHANGE = obj(event_id=ID, starts_at=string(), ends_at=string())
 SCHEMAS = {
+    "search_memory": obj(query=string(maxLength=200)),
+    "propose_memory": obj(
+        content=string(maxLength=1000, minLength=1),
+        kind={"type": "string", "enum": ["preference", "routine", "profile"]},
+        use_for_ai={"type": "boolean"},
+    ),
+    "update_memory": obj(
+        memory_id=ID,
+        expected_version={"type": "integer", "minimum": 1},
+        content=string(maxLength=1000, minLength=1),
+        kind={"type": "string", "enum": ["preference", "routine", "profile"]},
+        use_for_ai={"type": "boolean"},
+    ),
+    "delete_memory": obj(memory_id=ID, expected_version={"type": "integer", "minimum": 1}),
+    "configure_work": obj(
+        workdays={
+            "type": "array",
+            "items": {"type": "integer", "minimum": 0, "maximum": 6},
+            "minItems": 1,
+            "maxItems": 7,
+        },
+        start=string(),
+        end=string(),
+        break_minutes={"type": "integer", "minimum": 0, "maximum": 120},
+        memory_suggestions={"type": "boolean"},
+    ),
+    "configure_automation": obj(
+        kind={"type": "string", "enum": ["morning", "daily", "weekly"]},
+        enabled={"type": "boolean"},
+        time=string(),
+        weekday={"type": "integer", "minimum": 0, "maximum": 6},
+        target={"type": "string", "enum": ["dm", "channel"]},
+        channel_id=string(True),
+        fallback={"type": "boolean"},
+    ),
+    "plan_tasks": obj(date=string(), days={"type": "integer", "enum": [1, 7]}),
+    "propose_schedule_tasks": obj(
+        date=string(),
+        days={"type": "integer", "enum": [1, 7]},
+        entries={
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": obj(task_id=ID, starts_at=string(), ends_at=string()),
+        },
+    ),
     "get_today_overview": obj(date=string()),
     "list_tasks": obj(
         status=string(True),
@@ -108,6 +154,12 @@ WRITES = frozenset(
         "create_reminder",
         "propose_reschedule",
         "propose_bulk_task_update",
+        "propose_memory",
+        "update_memory",
+        "delete_memory",
+        "configure_work",
+        "configure_automation",
+        "propose_schedule_tasks",
     }
 )
 
