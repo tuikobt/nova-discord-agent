@@ -6,6 +6,7 @@ from datetime import datetime
 import discord
 
 from app.agent.client import ResponsesClient
+from app.agent.failures import explain_failure
 from app.agent.gateway import ToolGateway
 from app.agent.orchestrator import AgentOrchestrator
 from app.agent.personal_ai import PersonalAI
@@ -260,14 +261,9 @@ class AgentController:
                 )
                 await sent.edit(view=proposal_view(suggestion, 0))
         except Exception as error:
-            logger.warning("agent_turn_failed", extra={"error_type": type(error).__name__})
-            text = (
-                str(error)
-                if isinstance(error, DomainError)
-                else (
-                    "AI chưa xử lý được yêu cầu. Dùng /menu hoặc thử lại; "
-                    "không tự gửi lại thao tác ghi."
-                )
+            code, text = explain_failure(error)
+            logger.warning(
+                "agent_turn_failed", extra={"error_type": type(error).__name__, "error_code": code}
             )
             try:
                 await message.channel.send(text, allowed_mentions=discord.AllowedMentions.none())
