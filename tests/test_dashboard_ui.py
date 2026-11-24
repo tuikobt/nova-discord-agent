@@ -26,7 +26,7 @@ def test_dashboard_components_are_persistent_and_stable(controller):
             item.custom_id for item in second.children
         ]
         assert len({item.custom_id for item in first.children}) == len(first.children)
-        assert len(first.children) == 9
+        assert len(first.children) == 10
         assert all(
             str(controller.authorization.owner_id) not in item.custom_id for item in first.children
         )
@@ -35,9 +35,13 @@ def test_dashboard_components_are_persistent_and_stable(controller):
             item for item in first.children if getattr(item, "screen", None) in QUICK_SCREENS
         ]
         assert {item.screen for item in quick_buttons} == set(QUICK_SCREENS)
-        assert [sum(item.row == row for item in quick_buttons) for row in (0, 1)] == [3, 2]
+        assert [sum(item.row == row for item in quick_buttons) for row in (0, 1)] == [3, 3]
         select = next(item for item in first.children if isinstance(item, MoreSelect))
-        assert {option.value for option in select.options} == set(MORE_SCREENS)
+        assert {option.value for option in select.options} == {
+            screen
+            for screen in MORE_SCREENS
+            if MODULES[screen].available and screen not in QUICK_SCREENS
+        }
 
     asyncio.run(scenario())
 
@@ -53,7 +57,10 @@ def test_every_screen_renders_in_a_private_panel(controller, interaction, screen
         assert view.timeout == 600
         assert not view.is_persistent()
         if screen != Screen.HOME:
-            assert {getattr(item, "label", None) for item in view.children} >= {"Back", "Refresh"}
+            assert {getattr(item, "label", None) for item in view.children} >= {
+                "Về trang chính",
+                "Làm mới",
+            }
         if screen in MODULES and not MODULES[screen].available:
             assert "Sắp ra mắt" in str(kwargs["embed"].to_dict())
         interaction.message.edit.assert_not_awaited()
@@ -75,9 +82,7 @@ def test_public_button_opens_private_panel_without_overwriting_anchor(
         )
         await button.callback(interaction)
         interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
-        assert (
-            "Task Management" in interaction.edit_original_response.await_args.kwargs["embed"].title
-        )
+        assert "Việc cần làm" in interaction.edit_original_response.await_args.kwargs["embed"].title
         interaction.message.edit.assert_not_awaited()
         assert not view.is_finished()
 
@@ -95,7 +100,9 @@ def test_back_refresh_and_next_edit_only_current_private_panel(
         interaction.response.defer.reset_mock()
         interaction.response.is_done.return_value = False
         view = interaction.edit_original_response.await_args.kwargs["view"]
-        next_button = next(item for item in view.children if getattr(item, "label", None) == "Next")
+        next_button = next(
+            item for item in view.children if getattr(item, "label", None) == "Trang sau"
+        )
         await next_button.callback(interaction)
         interaction.response.defer.assert_awaited_once_with()
         kwargs = interaction.edit_original_response.await_args.kwargs
@@ -103,20 +110,20 @@ def test_back_refresh_and_next_edit_only_current_private_panel(
         assert view.is_finished()
         second = kwargs["view"]
         assert next(
-            item for item in second.children if getattr(item, "label", None) == "Next"
+            item for item in second.children if getattr(item, "label", None) == "Trang sau"
         ).disabled
         await next(
-            item for item in second.children if getattr(item, "label", None) == "Refresh"
+            item for item in second.children if getattr(item, "label", None) == "Làm mới"
         ).callback(interaction)
         assert (
             "Trang 2/2" in interaction.edit_original_response.await_args.kwargs["embed"].footer.text
         )
         third = interaction.edit_original_response.await_args.kwargs["view"]
         await next(
-            item for item in third.children if getattr(item, "label", None) == "Back"
+            item for item in third.children if getattr(item, "label", None) == "Về trang chính"
         ).callback(interaction)
         assert interaction.edit_original_response.await_args.kwargs["embed"].title.endswith(
-            "CONTROL CENTER"
+            "Trợ lý của bạn"
         )
         interaction.response.send_message.assert_not_awaited()
         interaction.message.edit.assert_not_awaited()
@@ -243,10 +250,10 @@ def test_db_failure_has_safe_error_and_retry_controls(
         await controller.navigate(interaction, Screen.SETTINGS, new_panel=True)
         kwargs = interaction.edit_original_response.await_args.kwargs
         assert "Chưa thể tải" in kwargs["embed"].title
-        assert {item.label for item in kwargs["view"].children} >= {"Back", "Refresh"}
+        assert {item.label for item in kwargs["view"].children} >= {"Về trang chính", "Làm mới"}
         assert "private details" not in caplog.text + str(kwargs["embed"].to_dict())
         settings_mock.get.side_effect = None
-        await next(item for item in kwargs["view"].children if item.label == "Refresh").callback(
+        await next(item for item in kwargs["view"].children if item.label == "Làm mới").callback(
             interaction
         )
         assert (
@@ -298,7 +305,7 @@ def test_dm_menu_is_private_and_does_not_publish_anchor(controller, interaction)
         await controller.menu(interaction)
         controller.publisher.ensure.assert_not_awaited()
         assert interaction.edit_original_response.await_args.kwargs["embed"].title.endswith(
-            "CONTROL CENTER"
+            "Trợ lý của bạn"
         )
         interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)
 

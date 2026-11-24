@@ -32,12 +32,12 @@ class Module:
 
 MODULES: dict[Screen, Module] = {
     Screen.TODAY: Module(
-        "Today Dashboard",
+        "Hôm nay",
         "Lịch trình và việc cần làm hôm nay.",
         ("Lịch trình trong ngày", "Công việc ưu tiên", "Lời nhắc sắp tới"),
     ),
     Screen.TASKS: Module(
-        "Task Management",
+        "Việc cần làm",
         "Theo dõi những việc cần làm.",
         (
             "Danh sách công việc",
@@ -48,23 +48,23 @@ MODULES: dict[Screen, Module] = {
         ),
     ),
     Screen.PROJECTS: Module(
-        "Project Management",
+        "Dự án",
         "Theo dõi dự án và công việc liên quan.",
         ("Danh sách dự án", "Trạng thái dự án", "Tiến độ từ công việc"),
     ),
     Screen.CALENDAR: Module(
-        "Calendar",
+        "Lịch của bạn",
         "Xem các khung thời gian và lịch hẹn.",
         ("Lịch ngày và tuần", "Kiểm tra lịch trùng", "Khung giờ làm việc"),
     ),
     Screen.REMINDERS: Module(
-        "Reminder Management",
+        "Nhắc việc",
         "Theo dõi thông báo nhắc việc.",
         ("Lời nhắc một lần", "Lời nhắc lặp lại", "Hoãn và hủy lời nhắc"),
         available=True,
     ),
     Screen.AI: Module(
-        "AI Assistant",
+        "Nhắn NOVA",
         "Trò chuyện tự nhiên với NOVA qua DM.",
         ("Hỏi đáp bằng tiếng Việt", "Tra cứu việc và lịch", "Đề xuất có xác nhận"),
         available=True,
@@ -88,12 +88,12 @@ MODULES: dict[Screen, Module] = {
         "Notes", "Lưu ghi chú cá nhân.", ("Danh sách ghi chú", "Tìm kiếm", "Phân loại ghi chú")
     ),
     Screen.MEMORY: Module(
-        "Memory",
+        "Điều NOVA ghi nhớ",
         "Quản lý thông tin được phép ghi nhớ.",
         ("Xem thông tin đã nhớ", "Nguồn và xác nhận", "Sửa hoặc xóa thông tin"),
     ),
     Screen.REPORTS: Module(
-        "Reports",
+        "Kế hoạch & báo cáo",
         "Xem báo cáo dựa trên dữ liệu đã ghi nhận.",
         ("Báo cáo ngày", "Báo cáo tuần", "Tổng hợp tiến độ"),
     ),
@@ -112,8 +112,22 @@ MODULES: dict[Screen, Module] = {
     ),
 }
 
-QUICK_SCREENS = (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.REMINDERS, Screen.AI)
-for _screen in (Screen.TODAY, Screen.TASKS, Screen.PROJECTS, Screen.CALENDAR):
+QUICK_SCREENS = (
+    Screen.AI,
+    Screen.TODAY,
+    Screen.TASKS,
+    Screen.REPORTS,
+    Screen.REMINDERS,
+    Screen.PROJECTS,
+)
+for _screen in (
+    Screen.TODAY,
+    Screen.TASKS,
+    Screen.PROJECTS,
+    Screen.CALENDAR,
+    Screen.MEMORY,
+    Screen.REPORTS,
+):
     MODULES[_screen] = replace(MODULES[_screen], available=True)
 MORE_SCREENS = (
     Screen.CALENDAR,

@@ -6,8 +6,10 @@ from datetime import datetime
 import discord
 
 from app.agent.client import ResponsesClient
+from app.agent.failures import explain_failure
 from app.agent.gateway import ToolGateway
 from app.agent.orchestrator import AgentOrchestrator
+from app.agent.personal_ai import PersonalAI
 from app.agent.serialization import encode
 from app.agent.usage import UsageService
 from app.discord_bot.checks import authorize_interaction
@@ -24,6 +26,20 @@ def pages(text, size=1800):
 
 
 LABELS = {
+    "content": "Nội dung ghi nhớ",
+    "kind": "Loại",
+    "use_for_ai": "Dùng cho AI",
+    "is_deleted": "Xóa nội dung",
+    "workdays": "Ngày làm (0=Hai…6=CN)",
+    "start": "Bắt đầu làm",
+    "end": "Kết thúc làm",
+    "break_minutes": "Nghỉ giữa task (phút)",
+    "memory_suggestions": "AI gợi ý memory",
+    "enabled": "Bật tự động",
+    "time": "Giờ local",
+    "weekday": "Ngày tuần (0=Hai…6=CN)",
+    "target": "Vị trí gửi",
+    "fallback": "Cho phép fallback kênh riêng",
     "title": "Tiêu đề",
     "due_at": "Hạn",
     "priority": "Ưu tiên",
@@ -46,6 +62,12 @@ LABELS = {
 
 def preview_pages(proposal):
     plan = proposal["preview"]
+    if plan.get("erased"):
+        return ["Nội dung memory đã được xóa; đề xuất cũ không còn hiệu lực."]
+    if plan.get("personal_kind"):
+        from app.discord_bot.renderers.personal import preview_lines
+
+        return pages("\n".join(preview_lines(proposal)))
     tz = plan["timezone"]
 
     def value(item):
@@ -62,6 +84,13 @@ def preview_pages(proposal):
         return encode(item)
 
     lines = [f"ĐỀ XUẤT — CHƯA LƯU • {tz}", f"Hết hạn: {value(proposal['expires_at'])}"]
+    if plan.get("source"):
+        lines.append(f"Nguồn: {value(plan['source'])}")
+    if plan.get("personal_kind") == "delete_memory":
+        lines.append(
+            "Xóa nội dung khỏi DB, context và đề xuất liên quan. "
+            "Tin Discord/backup cũ cần xử lý riêng."
+        )
     for change in plan["changes"]:
         before, after = change["before"], change["after"]
         lines.append(f"\n{change['entity']}: {value(after.get('title', ''))}")
@@ -165,6 +194,11 @@ class AgentController:
             transport,
             secrets=SecretFilter((client.settings.discord_token, self.config.key)),
         )
+        client.core_services.personal.secrets = self.orchestrator.secrets
+        client.core_services.personal.on_memory_change = self.orchestrator.clear
+        client.core_services.reports.ai = PersonalAI(
+            self.config, self.authorization, client.core_services.personal, self.usage, transport
+        )
 
     async def message(self, message):
         self.authorization.require_owner(message.author.id)
@@ -213,15 +247,23 @@ class AgentController:
                         allowed_mentions=discord.AllowedMentions.none(),
                         suppress_embeds=True,
                     )
-        except Exception as error:
-            logger.warning("agent_turn_failed", extra={"error_type": type(error).__name__})
-            text = (
-                str(error)
-                if isinstance(error, DomainError)
-                else (
-                    "AI chưa xử lý được yêu cầu. Dùng /menu hoặc thử lại; "
-                    "không tự gửi lại thao tác ghi."
+            suggestion = result.get("memory_suggestion")
+            if suggestion and suggestion["status"] == "pending" and not suggestion["message_id"]:
+                await message.channel.send(
+                    "Gợi ý ghi nhớ riêng — chỉ lưu sau khi bạn Duyệt:",
+                    allowed_mentions=discord.AllowedMentions.none(),
                 )
+                sent = await message.channel.send(
+                    preview_pages(suggestion)[0], allowed_mentions=discord.AllowedMentions.none()
+                )
+                await self.pending.bind(
+                    message.author.id, suggestion["id"], sent.channel.id, sent.id
+                )
+                await sent.edit(view=proposal_view(suggestion, 0))
+        except Exception as error:
+            code, text = explain_failure(error)
+            logger.warning(
+                "agent_turn_failed", extra={"error_type": type(error).__name__, "error_code": code}
             )
             try:
                 await message.channel.send(text, allowed_mentions=discord.AllowedMentions.none())
@@ -233,9 +275,15 @@ class AgentController:
             return
         await interaction.response.defer()
         try:
-            if interaction.guild is not None:
-                raise ValueError("DM only")
             proposal = await self.pending.get(interaction.user.id, button.key)
+            if interaction.guild is not None:
+                from app.services.personal_service import PERSONAL_WRITES
+
+                if (
+                    proposal["action"] not in PERSONAL_WRITES
+                    or not interaction.message.flags.ephemeral
+                ):
+                    raise ValueError("Private proposal only")
             if proposal["message_id"] != str(interaction.message.id) or proposal[
                 "channel_id"
             ] != str(interaction.channel_id):

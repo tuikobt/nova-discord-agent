@@ -69,6 +69,11 @@ receipts và usage trong DB; có thể duyệt proposal khi AI tắt. Không t�
 - 🏃 Habits — P7
 - 📝 Notes — P7
 - 💾 Memory — P6
+- P6 Memory và Reports mở panel riêng có owner guard. Memory có tìm/sửa/xóa,
+  nguồn, dùng cho AI; Reports có giờ làm, lịch báo cáo, planner ngày/tuần và lịch
+  sử gửi/lỗi. Mọi thay đổi cần preview/Duyệt. Các bản tin mở lại được sau restart
+  qua DynamicItem gắn run ID, owner/message/channel binding; không tự duyệt lịch.
+  Hướng dẫn thử: [PHASE_6_VALIDATION](PHASE_6_VALIDATION.md).
 - 📊 Reports — P6
 
 Menu các module chưa có thể hiển thị với nhãn `🔒 Sắp ra mắt` hoặc không có hành động; khi được chọn thì trả thông báo rõ “chức năng chưa phát triển”.

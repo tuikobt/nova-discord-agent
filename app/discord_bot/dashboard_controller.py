@@ -9,11 +9,11 @@ from app.discord_bot.core_controller import CoreController
 from app.discord_bot.core_state import CORE_SCREENS, CoreRoute
 from app.discord_bot.dashboard_publisher import DashboardPublisher, DashboardPublishError
 from app.discord_bot.error_handlers import send_private
+from app.discord_bot.personal_controller import PersonalController
 from app.discord_bot.reminder_controller import ReminderController
 from app.discord_bot.renderers.dashboard import (
     render_dashboard,
     render_error,
-    render_help,
     render_module,
     render_settings,
 )
@@ -43,6 +43,7 @@ class DashboardController:
         self.publisher = DashboardPublisher(client, settings)
         self.core = CoreController(self, core_services)
         self.reminders = ReminderController(self, getattr(core_services, "reminders", None))
+        self.personal = PersonalController(self, core_services)
 
     async def restore(self) -> None:
         preferences = await self.settings.get(self.authorization.owner_id)
@@ -119,6 +120,11 @@ class DashboardController:
             if route == Screen.REMINDERS and self.reminders.service is not None:
                 await self.reminders.open(interaction, page=page, previous=previous)
                 return
+            if route in {Screen.MEMORY, Screen.REPORTS} and getattr(
+                self.personal.core, "personal", None
+            ):
+                await self.personal.open(interaction, route, page=page, previous=previous)
+                return
             if route == Screen.HOME:
                 embed = render_dashboard(await self.service.overview(interaction.user.id))
                 view = DashboardView(self, anchor=False)
@@ -127,10 +133,17 @@ class DashboardController:
 
                 embed, view = AgentPanel.build(self)
             elif route == Screen.HELP:
-                embed, view = render_help(), PanelView(self, route)
+                from app.discord_bot.views.guide import GuideView, render_guide
+
+                embed, view = render_guide(), GuideView(self)
             elif route == Screen.SETTINGS:
                 preferences = await self.settings.get(interaction.user.id)
-                embed = render_settings(preferences)
+                personal = (
+                    await self.personal.core.personal.settings(interaction.user.id)
+                    if getattr(self.personal.core, "personal", None)
+                    else None
+                )
+                embed = render_settings(preferences, personal=personal)
                 view = PanelView(self, route, timezone_default=preferences.timezone)
             else:
                 embed = render_module(route, self.service.features(route, page))
@@ -165,9 +178,14 @@ class DashboardController:
         try:
             await self.settings.update_timezone(interaction.user.id, timezone)
             preferences = await self.settings.get(interaction.user.id)
+            personal = (
+                await self.personal.core.personal.settings(interaction.user.id)
+                if getattr(self.personal.core, "personal", None)
+                else None
+            )
             await self.finish(
                 interaction,
-                render_settings(preferences, saved=True),
+                render_settings(preferences, saved=True, personal=personal),
                 PanelView(self, Screen.SETTINGS, timezone_default=preferences.timezone),
                 previous,
             )

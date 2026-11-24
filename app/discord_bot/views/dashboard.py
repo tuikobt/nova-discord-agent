@@ -22,6 +22,24 @@ LABELS = {
     Screen.PROJECTS: "Projects",
     Screen.REMINDERS: "Reminders",
     Screen.AI: "AI Assistant",
+    Screen.REPORTS: "Reports",
+}
+DISPLAY_LABELS = {
+    "Today": "Hôm nay",
+    "Tasks": "Việc cần làm",
+    "Projects": "Dự án",
+    "Reminders": "Nhắc việc",
+    "AI Assistant": "Nhắn NOVA",
+    "Memory": "Ghi nhớ",
+    "Reports": "Kế hoạch & báo cáo",
+    "Help": "Hướng dẫn",
+    "Settings": "Cài đặt",
+    "Back": "Về trang chính",
+    "Refresh": "Làm mới",
+    "Previous": "Trang trước",
+    "Next": "Trang sau",
+    "Automation & Planner": "Kế hoạch & báo cáo",
+    "Planner & Reports": "Kế hoạch & báo cáo",
 }
 
 
@@ -82,7 +100,7 @@ class NavigateButton(discord.ui.Button):
         disabled: bool = False,
     ) -> None:
         super().__init__(
-            label=label,
+            label=DISPLAY_LABELS.get(label, label),
             style=discord.ButtonStyle.secondary,
             row=row,
             custom_id=f"nova:dashboard:v1:{screen.value}:{label.lower().replace(' ', '_')}",
@@ -102,18 +120,21 @@ class NavigateButton(discord.ui.Button):
 class MoreSelect(discord.ui.Select):
     def __init__(self, controller: DashboardController, *, anchor: bool) -> None:
         super().__init__(
-            placeholder="Các module khác…",
+            placeholder="Lịch của bạn và điều NOVA ghi nhớ…",
             row=2,
             custom_id="nova:dashboard:v1:modules",
             min_values=1,
             max_values=1,
             options=[
                 discord.SelectOption(
-                    label=MODULES[screen].title,
+                    label={Screen.CALENDAR: "Lịch của bạn", Screen.MEMORY: "Điều NOVA ghi nhớ"}.get(
+                        screen, MODULES[screen].title
+                    ),
                     value=screen.value,
                     description="Mở module" if MODULES[screen].available else "Sắp ra mắt",
                 )
                 for screen in MORE_SCREENS
+                if MODULES[screen].available and screen not in QUICK_SCREENS
             ],
         )
         self.controller = controller
@@ -132,7 +153,7 @@ class MoreSelect(discord.ui.Select):
 
 class AnchorRefresh(discord.ui.Button):
     def __init__(self, controller: DashboardController) -> None:
-        super().__init__(label="Refresh", row=3, custom_id="nova:dashboard:v1:refresh")
+        super().__init__(label="Làm mới", row=3, custom_id="nova:dashboard:v1:refresh")
         self.controller = controller
 
     async def callback(self, interaction: discord.Interaction) -> None:
@@ -194,6 +215,10 @@ class PanelView(OwnerView):
                 self.add_item(NavigateButton(controller, target, label=target.value.title(), row=0))
         if screen == Screen.SETTINGS and not error:
             self.add_item(EditTimezoneButton(controller))
+            self.add_item(
+                NavigateButton(controller, Screen.REPORTS, label="Automation & Planner", row=1)
+            )
+            self.add_item(NavigateButton(controller, Screen.MEMORY, label="Memory", row=1))
         elif screen in MODULES and screen != Screen.SETTINGS and not error:
             pages = paginate(MODULES[screen].features, page)
             if pages.total > 1:

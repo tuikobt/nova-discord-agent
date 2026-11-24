@@ -61,7 +61,12 @@ def fields(value, allowed):
 
 def model_result(name, value, secrets=None):
     value = plain(value)
-    if name == "get_task":
+    if name == "search_memory":
+        value = dict(
+            items=[fields(item, {"id", "content", "kind", "version"}) for item in value["items"]],
+            total=value["total"],
+        )
+    elif name == "get_task":
         value = fields(value, TASK_FIELDS | {"description", "completed_at"})
     elif name in {"list_tasks", "list_projects", "list_events", "list_reminders"}:
         allowed = {

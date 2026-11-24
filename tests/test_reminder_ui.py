@@ -305,7 +305,7 @@ def test_lists_paging_filter_back_and_home_do_not_overwrite_anchor(reminder_ui, 
             await press(interaction, current(interaction), "home")
             interaction.message.edit.assert_not_awaited()
             assert (
-                "PERSONAL CONTROL CENTER"
+                "Trợ lý của bạn"
                 in interaction.edit_original_response.await_args.kwargs["embed"].title
             )
 

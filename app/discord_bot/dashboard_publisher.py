@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import discord
 
-from app.discord_bot.renderers.dashboard import ANCHOR_MARKER, TITLE, render_dashboard
+from app.discord_bot.renderers.dashboard import ANCHOR_MARKER, LEGACY_TITLE, TITLE, render_dashboard
 from app.domain.schemas import DashboardLocation
 from app.services.settings_service import SettingsService
 
@@ -45,7 +45,7 @@ class DashboardPublisher:
             self.client.user
             and message.author.id == self.client.user.id
             and message.embeds
-            and message.embeds[0].title == TITLE
+            and message.embeds[0].title in {TITLE, LEGACY_TITLE}
             and message.embeds[0].footer.text == ANCHOR_MARKER
         )
 

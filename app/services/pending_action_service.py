@@ -78,9 +78,13 @@ class PendingActionService(CoreService):
         async with self.transaction() as session:
             return self.result(await self.get_row(session, owner, key))
 
-    async def plan(self, session, owner, kind, args):
+    async def plan(self, session, owner, kind, args, *, source="manual"):
         """Rebuilt at approval; any changed record or new conflict invalidates preview."""
         args = validate(kind, args)
+        from app.services.personal_service import PERSONAL_WRITES
+
+        if kind in PERSONAL_WRITES:
+            return await self.core.personal.plan(session, owner, kind, args, source=source)
         user = await session.get(User, owner)
         tz = user.timezone
         changes, references, conflicts, reminders = [], [], [], []
@@ -263,21 +267,27 @@ class PendingActionService(CoreService):
             reminders=reminders,
         )
 
-    async def propose(self, actor, kind, args, *, turn):
+    async def propose(self, actor, kind, args, *, turn, source="manual"):
         owner = self.authorize(actor)
         if kind not in WRITES or len(str(turn)) > 128:
             raise ValidationError("Hành động không hợp lệ.")
-        async with self.core.reminders.lock, self.transaction(write=True) as session:
+        args = validate(kind, args)
+        await self.core.personal.validate_channel(actor, kind, args)
+        async with (
+            self.core.automation.lock,
+            self.core.reminders.lock,
+            self.transaction(write=True) as session,
+        ):
             old = await session.scalar(
                 select(PendingAction).where(
                     PendingAction.owner_id == owner, PendingAction.idempotency_key == str(turn)
                 )
             )
             if old:
-                if old.action_type != kind or old.payload_json["args"] != args:
+                if old.action_type != kind or old.payload_json.get("args") != args:
                     raise DuplicateRequestError()
                 return self.result(old)
-            payload = await self.plan(session, owner, kind, args)
+            payload = await self.plan(session, owner, kind, args, source=source)
             row = PendingAction(
                 id=str(uuid4()),
                 owner_id=owner,
@@ -306,7 +316,16 @@ class PendingActionService(CoreService):
         if choice not in {"keep", "shift", "reject"}:
             raise ApprovalInvalidError()
         expired = False
-        async with self.core.reminders.lock, self.transaction(write=True) as session:
+        proposal = await self.get(actor, key)
+        if proposal["status"] == "pending" and choice != "reject":
+            await self.core.personal.validate_channel(
+                actor, proposal["action"], proposal["preview"].get("args", {})
+            )
+        async with (
+            self.core.automation.lock,
+            self.core.reminders.lock,
+            self.transaction(write=True) as session,
+        ):
             row = await self.get_row(session, owner, key)
             if (
                 not row.message_id
@@ -326,60 +345,16 @@ class PendingActionService(CoreService):
                     status="rejected", message="Đã bỏ đề xuất; dữ liệu nghiệp vụ giữ nguyên."
                 )
             else:
-                current = await self.plan(session, owner, row.action_type, row.payload_json["args"])
+                current = await self.plan(
+                    session,
+                    owner,
+                    row.action_type,
+                    row.payload_json["args"],
+                    source=row.payload_json.get("source", "manual"),
+                )
                 if current != row.payload_json:
                     raise StaleWriteError()
-                ids = []
-                for change in current["changes"]:
-                    values = dict(change["after"])
-                    entity, record_id = change["entity"], change["id"]
-                    for field in ("due_at", "starts_at", "ends_at", "next_fire_at"):
-                        if field in values:
-                            values[field] = timestamp(values[field])
-                    if not record_id:
-                        record_id = str(uuid4())
-                        if entity == "task":
-                            values = self.core.tasks.creation_values(TaskData(**values))
-                        if entity == "event":
-                            values["origin"] = "agent"
-                        session.add(
-                            {"task": Task, "event": CalendarEvent, "reminder": Reminder}[entity](
-                                id=record_id, owner_id=owner, **values
-                            )
-                        )
-                    else:
-                        model = Task if entity == "task" else CalendarEvent
-                        target = await session.scalar(
-                            select(model).where(model.id == record_id, model.owner_id == owner)
-                        )
-                        if entity == "task":
-                            values["completed_at"] = (
-                                (target.completed_at or self.clock())
-                                if values["status"] == "done"
-                                else None
-                            )
-                        for field, value in values.items():
-                            setattr(target, field, value)
-                        target.updated_at = max(
-                            self.clock(), target.updated_at + timedelta(microseconds=1)
-                        )
-                    ids.append(record_id)
-                if choice == "shift":
-                    for change in current["reminders"]:
-                        target = await session.scalar(
-                            select(Reminder).where(
-                                Reminder.id == change["id"], Reminder.owner_id == owner
-                            )
-                        )
-                        values = dict(change["shifted"])
-                        values["next_fire_at"] = timestamp(values["next_fire_at"])
-                        if values["next_fire_at"] <= self.clock():
-                            raise ValidationError("Giờ nhắc sau khi dời đã qua; cần đề xuất mới.")
-                        await self.core.reminders.supersede(session, owner, target.id)
-                        for field, value in values.items():
-                            setattr(target, field, value)
-                        self.core.reminders.touch(target)
-                await session.flush()
+                ids = await self.apply_plan(session, owner, current, choice, row)
                 row.status, row.result_json = (
                     "executed",
                     dict(status="executed", ids=ids, message="Đã lưu thay đổi vào database."),
@@ -399,3 +374,55 @@ class PendingActionService(CoreService):
         if expired:
             raise ApprovalInvalidError()
         return result
+
+    async def apply_plan(self, session, owner, current, choice, row):
+        if current.get("personal_kind"):
+            return await self.core.personal.apply(session, owner, current, row)
+        ids = []
+        for change in current["changes"]:
+            values = dict(change["after"])
+            entity, record_id = change["entity"], change["id"]
+            for field in ("due_at", "starts_at", "ends_at", "next_fire_at"):
+                if field in values:
+                    values[field] = timestamp(values[field])
+            if not record_id:
+                record_id = str(uuid4())
+                if entity == "task":
+                    values = self.core.tasks.creation_values(TaskData(**values))
+                if entity == "event":
+                    values["origin"] = "agent"
+                session.add(
+                    {"task": Task, "event": CalendarEvent, "reminder": Reminder}[entity](
+                        id=record_id, owner_id=owner, **values
+                    )
+                )
+            else:
+                model = Task if entity == "task" else CalendarEvent
+                target = await session.scalar(
+                    select(model).where(model.id == record_id, model.owner_id == owner)
+                )
+                if entity == "task":
+                    values["completed_at"] = (
+                        (target.completed_at or self.clock())
+                        if values["status"] == "done"
+                        else None
+                    )
+                for field, value in values.items():
+                    setattr(target, field, value)
+                target.updated_at = max(self.clock(), target.updated_at + timedelta(microseconds=1))
+            ids.append(record_id)
+        if choice == "shift":
+            for change in current["reminders"]:
+                target = await session.scalar(
+                    select(Reminder).where(Reminder.id == change["id"], Reminder.owner_id == owner)
+                )
+                values = dict(change["shifted"])
+                values["next_fire_at"] = timestamp(values["next_fire_at"])
+                if values["next_fire_at"] <= self.clock():
+                    raise ValidationError("Giờ nhắc sau khi dời đã qua; cần đề xuất mới.")
+                await self.core.reminders.supersede(session, owner, target.id)
+                for field, value in values.items():
+                    setattr(target, field, value)
+                self.core.reminders.touch(target)
+        await session.flush()
+        return ids

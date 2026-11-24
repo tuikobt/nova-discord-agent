@@ -3,14 +3,17 @@ import discord
 from app.domain.modules import MODULES, Screen
 from app.domain.schemas import DashboardOverview, FeaturePage, SettingsSnapshot
 
-TITLE = "NOVA — PERSONAL CONTROL CENTER"
+LEGACY_TITLE = "NOVA — PERSONAL CONTROL CENTER"
+TITLE = "NOVA — Trợ lý của bạn"
 ANCHOR_MARKER = "NOVA • Dashboard • v1"
 
 
 def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed:
     embed = discord.Embed(
         title=TITLE,
-        description="Chọn nút hoặc module để mở bảng riêng tư. Các module đang được phát triển.",
+        description="Muốn nói chuyện tự nhiên? Bấm **Nhắn NOVA**.\n"
+        "Muốn kiểm tra công việc? Bấm **Hôm nay**.\n"
+        "Dùng lần đầu? Bấm **Hướng dẫn** để bắt đầu từng bước.",
         colour=discord.Colour.blurple(),
     )
     if overview:
@@ -19,9 +22,9 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
         )
     embed.add_field(
         name="Lịch trình hôm nay",
-        value=f"{overview.events_today} lịch confirmed • Mở Today để xem."
+        value=f"{overview.events_today} lịch đã xác nhận • Mở Hôm nay để xem."
         if overview and overview.events_today is not None
-        else "Mở bảng riêng từ /menu hoặc Today để xem dữ liệu.",
+        else "Bấm Hôm nay để xem lịch và việc của bạn trong bảng riêng.",
         inline=False,
     )
     for name in ("Tasks", "Projects", "Reminders"):
@@ -33,24 +36,29 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
             if name == "Reminders" and not MODULES[Screen.REMINDERS].available
             else "Xem trong bảng riêng"
         )
-        embed.add_field(name=name, value=value, inline=True)
+        embed.add_field(
+            name={
+                "Tasks": "Việc đã ghi nhận",
+                "Projects": "Dự án",
+                "Reminders": "Nhắc việc đang bật",
+            }[name],
+            value=value,
+            inline=True,
+        )
     if overview and overview.done_tasks is not None:
-        embed.add_field(name="Tasks đã xong", value=str(overview.done_tasks), inline=True)
+        embed.add_field(name="Việc đã xong", value=str(overview.done_tasks), inline=True)
         embed.add_field(
             name="Cách đếm",
-            value=(
-                "Tasks không tính đã hủy; Projects không tính lưu trữ; Reminders đếm đang chạy."
-            ),
+            value=("Việc không tính đã hủy; dự án không tính lưu trữ; nhắc việc đếm đang bật."),
             inline=False,
         )
     embed.add_field(
-        name="Trạng thái các module",
+        name="Bạn cần làm gì?",
         inline=False,
-        value="\n".join(
-            f"• {module.title}: {'Đã có giao diện' if module.available else 'Sắp ra mắt'}"
-            for screen, module in MODULES.items()
-            if screen != Screen.TODAY
-        ),
+        value="**Việc cần làm:** ghi lại điều cần hoàn thành.\n"
+        "**Nhắc việc:** nhận thông báo vào giờ bạn chọn.\n"
+        "**Kế hoạch & báo cáo:** đề xuất giờ làm và xem tiến độ.\n"
+        "**Lịch của bạn / Ghi nhớ:** mở bằng danh sách lựa chọn bên dưới.",
     )
     embed.set_footer(text=ANCHOR_MARKER if overview is None else "NOVA • Bảng riêng tư")
     return embed
@@ -76,7 +84,9 @@ def render_module(screen: Screen, page: FeaturePage) -> discord.Embed:
     return embed
 
 
-def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> discord.Embed:
+def render_settings(
+    settings: SettingsSnapshot, *, saved: bool = False, personal=None
+) -> discord.Embed:
     embed = discord.Embed(
         title="NOVA — Settings",
         colour=discord.Colour.blurple(),
@@ -88,12 +98,25 @@ def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> disco
         inline=False,
     )
     embed.add_field(name="Timezone", value=settings.timezone, inline=False)
-    for name, value in (
-        ("Morning Briefing", settings.morning_briefing_time),
-        ("Daily Review", settings.daily_review_time),
-    ):
-        configured = value.strftime("%H:%M") if value else "Chưa đặt giờ"
-        embed.add_field(name=name, value=f"{configured} • Chưa kích hoạt", inline=False)
+    if personal is not None:
+        for kind, name in (
+            ("morning", "Morning Briefing"),
+            ("daily", "Daily Review"),
+            ("weekly", "Weekly Review"),
+        ):
+            policy = personal["policies"][kind]
+            embed.add_field(
+                name=name,
+                value=f"{policy['time']} • {'Bật' if policy['enabled'] else 'Tắt'}",
+                inline=False,
+            )
+    else:
+        for name, value in (
+            ("Morning Briefing", settings.morning_briefing_time),
+            ("Daily Review", settings.daily_review_time),
+        ):
+            configured = value.strftime("%H:%M") if value else "Chưa đặt giờ"
+            embed.add_field(name=name, value=f"{configured} • Chưa kích hoạt", inline=False)
     preference = "Bật" if settings.dm_notifications_enabled else "Tắt"
     embed.add_field(
         name="Notification Preferences",
@@ -108,7 +131,8 @@ def render_settings(settings: SettingsSnapshot, *, saved: bool = False) -> disco
     )
     embed.add_field(
         name="Trạng thái",
-        value="Có thể sửa Timezone. Các cài đặt mở rộng: Sắp ra mắt.",
+        value="Sửa Timezone tại đây. Chọn Automation & Planner để chỉnh báo cáo và giờ làm; "
+        "Memory để quản lý ghi nhớ.",
         inline=False,
     )
     return embed
@@ -151,6 +175,12 @@ def render_help() -> discord.Embed:
         name="Hết phiên",
         value="Panel riêng tư hết hạn sau 10 phút. Điều hướng sẽ làm mới phiên. "
         "Mở lại bằng nút trên bảng neo hoặc /menu.",
+        inline=False,
+    )
+    embed.add_field(
+        name="Memory / Reports",
+        value="Các module khác → Memory để xem/sửa/xóa ghi nhớ. "
+        "Reports để cấu hình giờ làm, lập kế hoạch và bật/tắt báo cáo. Thay đổi cần Duyệt.",
         inline=False,
     )
     return embed

@@ -8,7 +8,7 @@ import discord
 
 from app.discord_bot.error_handlers import send_private
 from app.discord_bot.renderers.core import LABELS, record_label
-from app.discord_bot.views.dashboard import OwnerView
+from app.discord_bot.views.dashboard import DISPLAY_LABELS, OwnerView
 from app.domain.core import ProjectRecord, TaskRecord
 from app.domain.enums import EventStatus, ProjectStatus, TaskPriority, TaskStatus
 from app.domain.modules import Screen
@@ -59,7 +59,7 @@ class CoreView(OwnerView):
 class CoreButton(discord.ui.Button):
     def __init__(self, label, action, *, row, value, disabled, style):
         super().__init__(
-            label=label,
+            label=DISPLAY_LABELS.get(label, label),
             row=row,
             disabled=disabled,
             style=style,

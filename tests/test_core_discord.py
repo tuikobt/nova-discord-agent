@@ -170,7 +170,7 @@ def test_real_lists_paging_filters_project_and_deadline_picker(
                 )
                 == 5
             )
-            await press(interaction, first, "Next")
+            await press(interaction, first, "Trang sau")
             second = view_of(interaction)
             assert (
                 "Trang 2/2"
@@ -206,7 +206,7 @@ def test_real_lists_paging_filters_project_and_deadline_picker(
             await choose(interaction, current, "record", select.options[0].value)
             detail = view_of(interaction)
             assert detail.record.title == "Task 1"
-            await press(interaction, detail, "Back")
+            await press(interaction, detail, "Về trang chính")
             assert view_of(interaction).route == current.route
 
     asyncio.run(scenario())
@@ -344,7 +344,7 @@ def test_calendar_date_week_and_adjacent_events_use_local_timezone(core_ui_facto
                 ends_at="2026-10-25 22:00",
             )
             assert not isinstance(detail, ConfirmationView)
-            await press(interaction, detail, "Back")
+            await press(interaction, detail, "Về trang chính")
             await press(interaction, view_of(interaction), "Xem tuần")
             assert view_of(interaction).route.weekly
             await press(interaction, view_of(interaction), "Chọn ngày")
@@ -373,7 +373,7 @@ def test_stale_modal_and_forged_select_fail_without_overwriting_data(core_ui_fac
                 in interaction.edit_original_response.await_args.kwargs["embed"].description
             )
             assert (await env.tasks.get(env.owner, task.id)).title == "External change"
-            await press(interaction, view_of(interaction), "Refresh")
+            await press(interaction, view_of(interaction), "Làm mới")
             current = view_of(interaction)
             calls = interaction.edit_original_response.await_count
             await choose(interaction, current, "status", "admin")
@@ -596,7 +596,7 @@ def test_many_conflicts_have_pages_and_approve_only_on_last(
                 assert (await env.calendar.list_day(env.owner, DAY)).total == 15
                 return
             while pending.confirm_page < len(pending.text_pages) - 1:
-                await press(interaction, pending, "Next")
+                await press(interaction, pending, "Trang sau")
                 pending = view_of(interaction)
                 assert len(interaction.edit_original_response.await_args.kwargs["embed"]) < 6000
             assert not next(

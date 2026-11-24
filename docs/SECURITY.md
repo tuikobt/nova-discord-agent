@@ -75,6 +75,17 @@ Nguồn: [Discord Gateway — Message Content](https://docs.discord.com/develope
 - Automation chỉ chạy khi enabled trong settings; có thể pause hoặc đặt quiet hours.
 - Không nhắn quá nhiều: gộp reminder khi hợp lý; cảnh báo deadline lặp giới hạn.
 - Không tự thực hiện hành động bên ngoài do model suy luận. Cần consent + service permission + owner confirmation.
+- P6 mặc định tắt cả ba automation; đổi policy cần pending approval. Không đọc
+  Gmail/Google/GitHub/Notion trong P6. Kênh báo cáo phải vượt cùng private ACL
+  của reminder, kiểm tra lại mỗi lần gửi; fallback phải được bật riêng, không
+  tự chuyển kênh khi owner tắt DM. Quiet hours không có ngoại lệ tự suy diễn.
+- Memory dùng cho AI tối đa 5 mục liên quan đã xác nhận/use_for_ai; nguồn backend,
+  không chèn vào system instructions. Xóa/tắt làm rỗng context, chặn kết quả AI
+  đang xử lý từ context cũ. Xóa nội dung khỏi các pending action liên quan;
+  không tự xóa tin Discord/backup hoặc cam kết secure erase trên ổ đĩa.
+- Report content lưu 30 ngày, metadata idempotency giữ lại. Memory xác nhận giữ
+  tới khi owner xóa. Mọi thay đổi P6 dùng TTL/version/owner/message/channel
+  binding và audit transaction. Tham khảo [giới hạn P6](PHASE_6_VALIDATION.md).
 
 ## 6. Checklist trước khi deploy công khai/VPS
 
