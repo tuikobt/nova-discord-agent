@@ -3,14 +3,17 @@ import discord
 from app.domain.modules import MODULES, Screen
 from app.domain.schemas import DashboardOverview, FeaturePage, SettingsSnapshot
 
-TITLE = "NOVA — PERSONAL CONTROL CENTER"
+LEGACY_TITLE = "NOVA — PERSONAL CONTROL CENTER"
+TITLE = "NOVA — Trợ lý của bạn"
 ANCHOR_MARKER = "NOVA • Dashboard • v1"
 
 
 def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed:
     embed = discord.Embed(
         title=TITLE,
-        description="Chọn nút hoặc module để mở bảng riêng tư. Các module đang được phát triển.",
+        description="Muốn nói chuyện tự nhiên? Bấm **Nhắn NOVA**.\n"
+        "Muốn kiểm tra công việc? Bấm **Hôm nay**.\n"
+        "Dùng lần đầu? Bấm **Hướng dẫn** để bắt đầu từng bước.",
         colour=discord.Colour.blurple(),
     )
     if overview:
@@ -19,9 +22,9 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
         )
     embed.add_field(
         name="Lịch trình hôm nay",
-        value=f"{overview.events_today} lịch confirmed • Mở Today để xem."
+        value=f"{overview.events_today} lịch đã xác nhận • Mở Hôm nay để xem."
         if overview and overview.events_today is not None
-        else "Mở bảng riêng từ /menu hoặc Today để xem dữ liệu.",
+        else "Bấm Hôm nay để xem lịch và việc của bạn trong bảng riêng.",
         inline=False,
     )
     for name in ("Tasks", "Projects", "Reminders"):
@@ -33,24 +36,29 @@ def render_dashboard(overview: DashboardOverview | None = None) -> discord.Embed
             if name == "Reminders" and not MODULES[Screen.REMINDERS].available
             else "Xem trong bảng riêng"
         )
-        embed.add_field(name=name, value=value, inline=True)
+        embed.add_field(
+            name={
+                "Tasks": "Việc đã ghi nhận",
+                "Projects": "Dự án",
+                "Reminders": "Nhắc việc đang bật",
+            }[name],
+            value=value,
+            inline=True,
+        )
     if overview and overview.done_tasks is not None:
-        embed.add_field(name="Tasks đã xong", value=str(overview.done_tasks), inline=True)
+        embed.add_field(name="Việc đã xong", value=str(overview.done_tasks), inline=True)
         embed.add_field(
             name="Cách đếm",
-            value=(
-                "Tasks không tính đã hủy; Projects không tính lưu trữ; Reminders đếm đang chạy."
-            ),
+            value=("Việc không tính đã hủy; dự án không tính lưu trữ; nhắc việc đếm đang bật."),
             inline=False,
         )
     embed.add_field(
-        name="Trạng thái các module",
+        name="Bạn cần làm gì?",
         inline=False,
-        value="\n".join(
-            f"• {module.title}: {'Đã có giao diện' if module.available else 'Sắp ra mắt'}"
-            for screen, module in MODULES.items()
-            if screen != Screen.TODAY
-        ),
+        value="**Việc cần làm:** ghi lại điều cần hoàn thành.\n"
+        "**Nhắc việc:** nhận thông báo vào giờ bạn chọn.\n"
+        "**Kế hoạch & báo cáo:** đề xuất giờ làm và xem tiến độ.\n"
+        "**Lịch của bạn / Ghi nhớ:** mở bằng danh sách lựa chọn bên dưới.",
     )
     embed.set_footer(text=ANCHOR_MARKER if overview is None else "NOVA • Bảng riêng tư")
     return embed

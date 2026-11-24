@@ -27,13 +27,13 @@ def test_public_dashboard_contains_no_fake_counts_or_private_preferences():
     assert embed.title == TITLE
     assert embed.footer.text == ANCHOR_MARKER
     values = fields(embed)
-    for label in ("Tasks", "Projects"):
+    for label in ("Việc đã ghi nhận", "Dự án"):
         assert values[label] == "Xem trong bảng riêng"
-    assert values["Reminders"] == "Xem trong bảng riêng"
+    assert values["Nhắc việc đang bật"] == "Xem trong bảng riêng"
     assert "Hôm nay" not in values
-    assert "Sắp ra mắt" in values["Trạng thái các module"]
-    assert "Memory" in values["Trạng thái các module"]
-    assert "Settings: Đã có giao diện" in values["Trạng thái các module"]
+    assert "Kế hoạch & báo cáo" in values["Bạn cần làm gì?"]
+    assert "Ghi nhớ" in values["Bạn cần làm gì?"]
+    assert "Sắp ra mắt" not in str(embed.to_dict())
     assert len(embed) < 6000
 
 

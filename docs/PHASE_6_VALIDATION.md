@@ -2,6 +2,10 @@
 
 Ngày kiểm tra: 2026-11-24. Phạm vi: Phase 6; không bắt đầu Phase 7.
 
+Giao diện tiếp tục được tối ưu theo phản hồi người dùng:
+[hướng dẫn sử dụng hiện tại](HUONG_DAN_SU_DUNG.md) và [báo cáo UX](PHASE_6_UX.md).
+Các tên màn hình tiếng Anh dưới đây mô tả bản triển khai ban đầu.
+
 ## Trạng thái và bằng chứng
 
 - Nhánh triển khai `feat/phase-6`, nền `80b368f` (Phase 5 đã merge).
@@ -11,7 +15,7 @@ Ngày kiểm tra: 2026-11-24. Phạm vi: Phase 6; không bắt đầu Phase 7.
 - Tests backup/upgrade/restore từ P5 có dữ liệu, rollback DDL bị gián đoạn,
   và downgrade từ chối xóa lịch sử P6 đều đạt.
 - Chờ owner kiểm tra thao tác trên Discord trước khi đánh dấu toàn bộ P6 DONE.
-  Trạng thái nghiệm thu P5 trong README/ROADMAP được giữ tới khi P6 đạt nghiệm thu.
+  README/ROADMAP ghi P6 đã triển khai, chờ nghiệm thu; không đánh dấu DONE sớm.
 
 ### Database vận hành và khởi động
 

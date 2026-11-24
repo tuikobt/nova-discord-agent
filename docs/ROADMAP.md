@@ -12,7 +12,7 @@
 | P3 | Core Management | 🟨 Nghiệm thu tự động đạt — Discord live chưa xác minh | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ✅ DONE (2026-11-17, người dùng nghiệm thu) | Reminder Engine/UI, 625 tests, DB/Discord thật và DM/Đã làm |
 | P5 | AI Agent | ✅ DONE (2026-11-18, người dùng nghiệm thu) | AI DM/Responses tools, durable approvals, usage limits, 687 tests và read/create-task live |
-| P6 | Memory & Proactive Automation | ⬜ NOT STARTED | memory controls, planner suggestions, morning/daily/weekly reports |
+| P6 | Memory & Proactive Automation | 🟨 Source/tests đạt — đang hoàn thiện UX, chờ nghiệm thu Discord | Memory controls, planner, morning/daily/weekly reports |
 | P7 | Expansion & Deployment | ⬜ NOT STARTED | Goals/Finance/Habits/Notes, integrations optional, Docker/VPS |
 
 **P0 DONE nghĩa là xong tài liệu thiết kế, không có nghĩa bot đã chạy.** Chỉ đánh dấu P1–P7 `DONE` khi đạt toàn bộ acceptance tương ứng và đã kiểm thử.
@@ -202,6 +202,14 @@ usage không rõ giữ reservation. Chi phí theo tiền vẫn theo OpenAI Usage
 - [x] Tokens/requests/reservations theo model được lưu, quota/rate/loop limits có tests; usage thực tế có records. Không báo ngân sách tiền chính xác khi chưa cấu hình giá.
 
 ## 8. Phase 6 — Personal Memory & Automation
+
+Đã triển khai schema `0006_personal`, Memory/Planner/Reports, nâng DB giữ nguyên
+dữ liệu P1–5, baseline 780 tests pass. Theo yêu cầu cải thiện trải nghiệm, đã
+tối ưu giao diện và hướng dẫn, đạt **790 tests pass**; chưa đánh dấu P6 DONE.
+Xem [báo cáo P6](PHASE_6_VALIDATION.md),
+[điều chỉnh UX](PHASE_6_UX.md) và [hướng dẫn sử dụng](HUONG_DAN_SU_DUNG.md).
+Các checkbox bên dưới chờ owner xác nhận sử dụng trên Discord; không phải trạng
+thái chưa triển khai. P7 chưa bắt đầu.
 
 ### Work packages
 

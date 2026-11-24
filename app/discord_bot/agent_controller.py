@@ -63,6 +63,10 @@ def preview_pages(proposal):
     plan = proposal["preview"]
     if plan.get("erased"):
         return ["Nội dung memory đã được xóa; đề xuất cũ không còn hiệu lực."]
+    if plan.get("personal_kind"):
+        from app.discord_bot.renderers.personal import preview_lines
+
+        return pages("\n".join(preview_lines(proposal)))
     tz = plan["timezone"]
 
     def value(item):

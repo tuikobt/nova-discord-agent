@@ -1,12 +1,14 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái:** **Phase 5 DONE — người dùng xác nhận hoạt động ngày 2026-11-18.** Bộ tự động gần nhất: **687 tests pass**, lint/format/compile đạt. Bot online với AI `gpt-6-luna`, DB Windows ở head `0005_agent`. Đã xác minh OpenAI gọi tool đọc dữ liệu thật và một đề xuất tạo task được duyệt/executed, audit success trong DB. Phạm vi bằng chứng và rollback tại [báo cáo P5](docs/PHASE_5_VALIDATION.md). Dữ liệu Phase 1–4 giữ nguyên khi migration; chưa nhập dữ liệu Linux. **Phase 6 chưa bắt đầu**.
+> **Trạng thái:** Phase 5 đã nghiệm thu. **Phase 6 đã triển khai Memory, Planner và bản tin; đã tối ưu giao diện, chờ nghiệm thu Discord.** DB Windows ở `0006_personal`, migration đã bảo toàn dữ liệu Phase 1–5. Kiểm thử sau chỉnh giao diện: **790 tests pass**, lint/format đạt; chi tiết tại [báo cáo UX](docs/PHASE_6_UX.md). Chưa đánh dấu toàn bộ P6 DONE hoặc bắt đầu P7.
 >
-> **Cập nhật:** nghiệm thu P5, 2026-11-18 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
+> **Cập nhật:** giao diện Phase 6, 2026-11-24 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
+
+**Dùng NOVA:** mở `/menu` → **Hướng dẫn** → **Bắt đầu trong 5 phút**. Muốn trò chuyện, chọn **Nhắn NOVA** → **Mở tin nhắn riêng**. [Hướng dẫn sử dụng theo từng việc](docs/HUONG_DAN_SU_DUNG.md).
 
 ## NOVA là gì?
 
-NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò chuyện tự nhiên** và **một server riêng để hiển thị dashboard, thông báo, báo cáo**. NOVA giúp quản lý lịch, công việc, dự án, nhắc nhở và — ở các giai đoạn kế tiếp — mục tiêu, thói quen, ghi chú, tài chính, trí nhớ dài hạn, ứng dụng ngoài.
+NOVA là **trợ lý AI cá nhân trên Discord**, dùng **tin nhắn riêng để trò chuyện** và **bảng điều khiển trong server riêng** để quản lý công việc. Bạn có thể ghi việc, xem lịch, nhận nhắc việc, cho NOVA ghi nhớ thông tin đã duyệt, đề xuất giờ làm và nhận báo cáo. Các module mở rộng được theo dõi trong roadmap.
 
 **Nguyên tắc sản phẩm:** *Không cần nhớ lệnh; nhắn tin hoặc bấm nút là đủ.* AI chỉ đề xuất hoặc thực hiện hành động trong phạm vi quyền được cấu hình; thao tác quan trọng cần được xác nhận.
 
@@ -45,7 +47,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, sử dụng **DM để trò c
 | Tasks, Projects, Calendar | Phase 3 | Nghiệm thu tự động đạt; Discord live chưa xác minh |
 | Reminders tự động | Phase 4 | ✅ DONE — người dùng xác nhận đã kiểm thử ngày 2026-11-17 |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | ✅ DONE — người dùng xác nhận hoạt động ngày 2026-11-18 |
-| Memory, planner thông minh, daily/weekly reports | Phase 6 | Chưa bắt đầu |
+| Ghi nhớ, lập kế hoạch, bản tin sáng/ngày/tuần | Phase 6 | Đã triển khai và kiểm thử; đang chờ nghiệm thu trải nghiệm Discord |
 | Goals, Finance, Habits, Notes, integrations, deploy | Phase 7+ | Chưa bắt đầu |
 
 ## Cấu trúc source hiện tại

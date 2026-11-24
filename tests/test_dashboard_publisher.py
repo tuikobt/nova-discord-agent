@@ -320,7 +320,7 @@ def test_persistent_dashboard_resumes_from_sqlite_after_client_restart(
             )
             await tasks.callback(interaction)
             assert (
-                "Task Management"
+                "Việc cần làm"
                 in interaction.edit_original_response.await_args.kwargs["embed"].title
             )
             interaction.response.defer.assert_awaited_once_with(ephemeral=True, thinking=True)

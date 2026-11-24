@@ -1,5 +1,6 @@
 """Legacy owner-only components; forms submit proposals rather than writing data."""
 
+from datetime import timedelta
 from time import monotonic
 
 import discord
@@ -7,6 +8,13 @@ import discord
 from app.discord_bot.checks import authorize_interaction
 from app.discord_bot.personal_controller import REPORT_NAMES, report_text
 from app.discord_bot.renderers.core import safe
+from app.discord_bot.renderers.personal import (
+    DAYS,
+    MEMORY_KINDS,
+    RUN_STATES,
+    policy_summary,
+    source_name,
+)
 from app.discord_bot.views.dashboard import NavigateButton, OwnerView
 from app.domain.errors import ValidationError
 from app.domain.modules import Screen
@@ -45,6 +53,8 @@ class PersonalView(OwnerView):
         self.personal = personal
         self.add_item(NavigateButton(self.controller, Screen.HOME, label="Back", row=4))
         self.add_item(NavigateButton(self.controller, screen, label="Refresh", row=4))
+        if screen == Screen.MEMORY:
+            self.add_item(NavigateButton(self.controller, Screen.HELP, label="Help", row=4))
 
     async def on_error(self, interaction, error, item):
         await self.personal.error(interaction, error)
@@ -103,12 +113,12 @@ class MemoryView(PersonalView):
     def __init__(self, personal, data, query):
         super().__init__(personal, Screen.MEMORY)
         self.records = {item["id"]: item for item in data["items"]}
-        self.add_item(Action("Thêm memory", self.create, row=0))
+        self.add_item(Action("Thêm ghi nhớ", self.create, row=0))
         self.add_item(Action("Tìm kiếm", self.search, row=0))
         if self.records:
             self.add_item(
                 Choice(
-                    "Chọn memory để sửa/xóa",
+                    "Chọn điều bạn muốn xem hoặc sửa",
                     [
                         discord.SelectOption(label=item["content"][:100], value=item["id"])
                         for item in self.records.values()
@@ -120,46 +130,58 @@ class MemoryView(PersonalView):
         self.pagination(Screen.MEMORY, data["page"], data["total"], query=query)
 
     async def create(self, interaction):
-        await self.modal(
-            interaction,
-            "Thêm memory (chờ duyệt)",
-            [
-                ("Nội dung owner xác nhận", None, 1000),
-                ("Loại: preference / routine / profile", "preference", 20),
-            ],
-            lambda i, values: self.personal.propose(
-                i,
-                "propose_memory",
-                dict(
-                    content=values[0],
-                    kind=values[1],
-                    use_for_ai=True,
+        if await self.personal.ack(interaction):
+            view = MemoryKindView(self.personal)
+            await self.personal.dashboard.finish(
+                interaction,
+                discord.Embed(
+                    title="Bạn muốn NOVA nhớ điều gì?",
+                    description="Chọn loại thông tin, rồi nhập điều bạn muốn ghi nhớ. "
+                    "Bạn sẽ được xem lại trước khi lưu.",
                 ),
-            ),
-        )
+                view,
+                self,
+            )
 
     async def search(self, interaction):
         async def submit(i, values):
             if await self.personal.ack(i):
                 await self.personal.open(i, Screen.MEMORY, query=values[0], previous=self)
 
-        await self.modal(interaction, "Tìm Memory", [("Từ khóa", None, 200)], submit)
+        await self.modal(interaction, "Tìm điều đã ghi nhớ", [("Từ khóa", None, 200)], submit)
 
     async def select(self, interaction, values):
         item = self.records[values[0]]
         if not await self.personal.ack(interaction):
             return
         embed = discord.Embed(
-            title="NOVA — Memory đã xác nhận", description=safe(item["content"], 3000)
+            title="NOVA — Điều đã ghi nhớ", description=safe(item["content"], 3000)
         )
-        embed.add_field(name="Nguồn", value=safe(item["source"] or "Owner", 150))
-        embed.add_field(name="Loại / dùng cho AI", value=f"{item['kind']} / {item['use_for_ai']}")
+        embed.add_field(name="Nguồn", value=source_name(item["source"]))
+        embed.add_field(name="Loại", value=MEMORY_KINDS[item["kind"]])
+        embed.add_field(name="NOVA được sử dụng", value="Có" if item["use_for_ai"] else "Không")
         embed.set_footer(
-            text="Xóa gỡ nội dung trong DB/context/đề xuất. "
-            "Tin Discord và backup cũ cần xử lý riêng."
+            text="Mọi thay đổi cần bạn duyệt. Tin nhắn Discord và bản sao lưu cũ cần xóa riêng."
         )
         await self.personal.dashboard.finish(
             interaction, embed, MemoryDetail(self.personal, item), self
+        )
+
+
+class MemoryKindView(PersonalView):
+    def __init__(self, personal):
+        super().__init__(personal, Screen.MEMORY)
+        for kind, name in MEMORY_KINDS.items():
+            self.add_item(Action(name, lambda i, selected=kind: self.input(i, selected)))
+
+    async def input(self, interaction, kind):
+        await self.modal(
+            interaction,
+            "Thêm ghi nhớ",
+            [("Bạn muốn NOVA nhớ điều gì?", None, 1000)],
+            lambda i, values: self.personal.propose(
+                i, "propose_memory", dict(content=values[0], kind=kind, use_for_ai=True)
+            ),
         )
 
 
@@ -168,8 +190,21 @@ class MemoryDetail(PersonalView):
         super().__init__(personal, Screen.MEMORY)
         self.item = item
         self.add_item(Action("Sửa nội dung", self.edit))
-        self.add_item(Action("Tắt AI" if item["use_for_ai"] else "Bật AI", self.toggle))
-        self.add_item(Action("Xóa memory", self.delete))
+        self.add_item(
+            Action("Ngừng sử dụng" if item["use_for_ai"] else "Cho phép sử dụng", self.toggle)
+        )
+        self.add_item(Action("Xóa ghi nhớ", self.delete))
+        self.add_item(
+            Choice(
+                "Đổi loại ghi nhớ",
+                [
+                    discord.SelectOption(label=name, value=kind)
+                    for kind, name in MEMORY_KINDS.items()
+                ],
+                self.kind,
+                row=1,
+            )
+        )
 
     def args(self, **changes):
         return dict(
@@ -184,18 +219,22 @@ class MemoryDetail(PersonalView):
     async def edit(self, interaction):
         async def submit(i, values):
             args = self.args()
-            args.update(content=values[0], kind=values[1])
+            args.update(content=values[0])
             await self.personal.propose(i, "update_memory", args)
 
         await self.modal(
             interaction,
-            "Sửa memory (chờ duyệt)",
+            "Sửa điều đã ghi nhớ",
             [
                 ("Nội dung", self.item["content"], 1000),
-                ("Loại: preference / routine / profile", self.item["kind"], 20),
             ],
             submit,
         )
+
+    async def kind(self, interaction, values):
+        args = self.args()
+        args["kind"] = values[0]
+        await self.personal.propose(interaction, "update_memory", args)
 
     async def toggle(self, interaction):
         args = self.args()
@@ -217,51 +256,42 @@ class ReportsView(PersonalView):
     def __init__(self, personal, config, history):
         super().__init__(personal, Screen.REPORTS)
         self.config = config
+        self.add_item(Action("Xếp lịch hôm nay", lambda i: self.quick_plan(i, "today")))
+        self.add_item(Action("Xếp lịch tuần tới", lambda i: self.quick_plan(i, "week")))
+        self.add_item(Action("Chọn ngày khác", self.plan))
+        self.add_item(Action("Thiết lập giờ làm", self.work, row=1))
+        self.add_item(Action("Lịch gửi bản tin", self.policies, row=1))
+        self.add_item(Action("Lịch sử gửi", self.history, row=1))
         self.add_item(
             Choice(
-                "Xem báo cáo / cấu hình",
+                "Xem ngay một bản báo cáo",
                 [
-                    discord.SelectOption(label=f"Xem: {name}", value=f"report:{kind}")
-                    for kind, name in REPORT_NAMES.items()
-                ]
-                + [
-                    discord.SelectOption(label=f"Cấu hình: {name}", value=f"config:{kind}")
+                    discord.SelectOption(label=name, value=kind)
                     for kind, name in REPORT_NAMES.items()
                 ],
                 self.choose,
-                row=0,
+                row=2,
             )
         )
-        self.add_item(Action("Giờ làm & Memory AI", self.work, row=1))
-        self.add_item(Action("Lập kế hoạch ngày/tuần", self.plan, row=1))
-        if history["items"]:
-            self.add_item(
-                Choice(
-                    "Lịch sử gửi / lỗi",
-                    [
-                        discord.SelectOption(
-                            label=f"{r['period']} {r['kind']} • {r['status']}",
-                            description=r["error"] or "Không có lỗi",
-                            value=r["id"],
-                        )
-                        for r in history["items"]
-                    ],
-                    self.history,
-                    row=2,
-                )
-            )
-        self.pagination(Screen.REPORTS, history["page"], history["total"])
+        self.add_item(NavigateButton(self.controller, Screen.TASKS, label="Tasks", row=3))
+        self.add_item(NavigateButton(self.controller, Screen.HELP, label="Help", row=4))
 
     async def choose(self, interaction, values):
-        action, kind = values[0].split(":")
-        if action == "report":
-            await self.personal.report(interaction, kind)
-        elif await self.personal.ack(interaction):
-            view = PolicyView(self.personal, self.config["policies"][kind])
+        await self.personal.report(interaction, values[0])
+
+    async def policies(self, interaction):
+        if await self.personal.ack(interaction):
+            config = await self.personal.core.personal.settings(interaction.user.id)
+            view = PoliciesView(self.personal, config)
             await self.personal.dashboard.finish(interaction, view.embed(), view, self)
 
-    async def history(self, interaction, values):
-        await self.personal.report(interaction, "daily", key=values[0])
+    async def history(self, interaction):
+        await self.personal.history(interaction, previous=self)
+
+    async def quick_plan(self, interaction, period):
+        today = self.personal.core.personal.clock().astimezone(zone(self.config["timezone"])).date()
+        day = today if period == "today" else today + timedelta(days=7 - today.weekday())
+        await self.personal.planner(interaction, day.isoformat(), 1 if period == "today" else 7)
 
     async def work(self, interaction):
         if await self.personal.ack(interaction):
@@ -269,28 +299,116 @@ class ReportsView(PersonalView):
             await self.personal.dashboard.finish(
                 interaction,
                 discord.Embed(
-                    title="Ngày làm việc",
-                    description="Chọn ngày trước, sau đó nhập giờ và xem đề xuất.",
+                    title="NOVA — Giờ làm của bạn",
+                    description="Bước 1: chọn những ngày bạn muốn làm việc.\n"
+                    "Bước 2: nhập giờ, xem lại rồi bấm Duyệt. "
+                    "NOVA chỉ xếp lịch trong thời gian bạn chọn.",
                 ),
                 view,
                 self,
             )
 
     async def plan(self, interaction):
-        today = self.personal.core.personal.clock().astimezone(zone(self.config["timezone"])).date()
+        if await self.personal.ack(interaction):
+            view = PlanDateView(self.personal, self.config["timezone"])
+            await self.personal.dashboard.finish(
+                interaction,
+                discord.Embed(
+                    title="Bạn muốn xếp lịch trong bao lâu?",
+                    description="Chọn một ngày hoặc cả tuần, sau đó nhập ngày bắt đầu.",
+                ),
+                view,
+                self,
+            )
 
-        async def submit(i, values):
-            await self.personal.planner(i, values[0], int(values[1]))
 
+class PlanDateView(PersonalView):
+    def __init__(self, personal, timezone):
+        super().__init__(personal, Screen.REPORTS)
+        self.timezone = timezone
+        self.add_item(Action("Một ngày", lambda i: self.date(i, 1)))
+        self.add_item(Action("Cả tuần (7 ngày)", lambda i: self.date(i, 7)))
+
+    async def date(self, interaction, days):
+        today = self.personal.core.personal.clock().astimezone(zone(self.timezone)).date()
         await self.modal(
             interaction,
-            "Lập kế hoạch (chờ duyệt)",
-            [
-                ("Ngày bắt đầu YYYY-MM-DD", today.isoformat(), 10),
-                ("Số ngày: 1 hoặc 7", "1", 1),
-            ],
-            submit,
+            "Chọn ngày bắt đầu",
+            [("Ngày bắt đầu (năm-tháng-ngày)", today.isoformat(), 10)],
+            lambda i, values: self.personal.planner(i, values[0], days),
         )
+
+
+class PoliciesView(PersonalView):
+    def __init__(self, personal, config):
+        super().__init__(personal, Screen.REPORTS)
+        self.config = config
+        self.add_item(
+            Choice(
+                "Chọn bản tin muốn cài đặt",
+                [
+                    discord.SelectOption(label=name, value=kind)
+                    for kind, name in REPORT_NAMES.items()
+                ],
+                self.choose,
+            )
+        )
+
+    def embed(self):
+        embed = discord.Embed(
+            title="NOVA — Lịch gửi bản tin",
+            description="Chọn một bản tin để bật, tắt, đổi giờ hoặc nơi nhận. "
+            "Mỗi thay đổi cần bạn duyệt.",
+        )
+        for kind, policy in self.config["policies"].items():
+            embed.add_field(name=REPORT_NAMES[kind], value=policy_summary(policy), inline=False)
+        embed.set_footer(
+            text=f"Giờ theo {self.config['timezone']} • Giờ yên lặng: Nhắc việc → Cài đặt gửi"
+        )
+        return embed
+
+    async def choose(self, interaction, values):
+        if await self.personal.ack(interaction):
+            view = PolicyView(self.personal, self.config["policies"][values[0]])
+            await self.personal.dashboard.finish(interaction, view.embed(), view, self)
+
+
+class HistoryView(PersonalView):
+    def __init__(self, personal, history):
+        super().__init__(personal, Screen.REPORTS)
+        if history["items"]:
+            self.add_item(
+                Choice(
+                    "Chọn một lần gửi để xem kết quả",
+                    [
+                        discord.SelectOption(
+                            label=f"{r['period']} • {REPORT_NAMES[r['kind']]}"[:100],
+                            description=RUN_STATES[r["status"]],
+                            value=r["id"],
+                        )
+                        for r in history["items"]
+                    ],
+                    self.choose,
+                )
+            )
+        page = history["page"]
+        if page:
+            self.add_item(
+                Action(
+                    "Trang trước",
+                    lambda i: personal.history(i, page=page - 1, previous=self),
+                    row=3,
+                )
+            )
+        if (page + 1) * 5 < history["total"]:
+            self.add_item(
+                Action(
+                    "Trang sau", lambda i: personal.history(i, page=page + 1, previous=self), row=3
+                )
+            )
+
+    async def choose(self, interaction, values):
+        await self.personal.report(interaction, "daily", key=values[0])
 
 
 class WorkView(PersonalView):
@@ -298,15 +416,19 @@ class WorkView(PersonalView):
         super().__init__(personal, Screen.REPORTS)
         self.work = work
         self.add_item(
+            Action("Thứ Hai–Thứ Sáu", lambda i: self.select(i, [str(d) for d in range(5)]), row=1)
+        )
+        self.add_item(
+            Action("Cả tuần", lambda i: self.select(i, [str(d) for d in range(7)]), row=1)
+        )
+        self.add_item(
             Choice(
                 "Chọn ngày làm (có thể chọn nhiều)",
                 [
                     discord.SelectOption(
                         label=name, value=str(day), default=day in work["workdays"]
                     )
-                    for day, name in enumerate(
-                        ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ nhật"]
-                    )
+                    for day, name in enumerate(DAYS)
                 ],
                 self.select,
                 row=0,
@@ -319,7 +441,11 @@ class WorkView(PersonalView):
 
         async def submit(i, fields):
             if fields[3] not in {"bật", "tắt"}:
-                raise ValidationError("Gợi ý memory phải là bật hoặc tắt.")
+                raise ValidationError("Nhập ‘bật’ hoặc ‘tắt’ cho tùy chọn gợi ý ghi nhớ.")
+            try:
+                rest = int(fields[2])
+            except ValueError:
+                raise ValidationError("Số phút nghỉ cần là một số, ví dụ 10.") from None
             await self.personal.propose(
                 i,
                 "configure_work",
@@ -327,20 +453,20 @@ class WorkView(PersonalView):
                     workdays=days,
                     start=fields[0],
                     end=fields[1],
-                    break_minutes=int(fields[2]),
+                    break_minutes=rest,
                     memory_suggestions=fields[3] == "bật",
                 ),
             )
 
         await self.modal(
             interaction,
-            "Giờ làm & gợi ý memory",
+            "Giờ làm của bạn",
             [
                 ("Bắt đầu HH:MM", self.work["start"] or "09:00", 5),
                 ("Kết thúc HH:MM", self.work["end"] or "17:00", 5),
                 ("Nghỉ giữa task (phút, 0–120)", self.work["break_minutes"], 3),
                 (
-                    "AI đề xuất memory: bật / tắt",
+                    "NOVA gợi ý ghi nhớ: bật / tắt",
                     "bật" if self.work["memory_suggestions"] else "tắt",
                     3,
                 ),
@@ -353,20 +479,36 @@ class PolicyView(PersonalView):
     def __init__(self, personal, policy):
         super().__init__(personal, Screen.REPORTS)
         self.policy = policy
-        self.add_item(Action("Tắt" if policy["enabled"] else "Bật", self.toggle))
-        self.add_item(Action("Đổi giờ/ngày", self.time))
+        self.add_item(Action("Tắt bản tin" if policy["enabled"] else "Bật bản tin", self.toggle))
+        self.add_item(Action("Đổi giờ gửi", self.time))
         self.add_item(
             Choice(
-                "Vị trí gửi",
+                "Bạn muốn nhận bản tin ở đâu?",
                 [
-                    discord.SelectOption(label="Chỉ DM", value="dm"),
+                    discord.SelectOption(label="Tin nhắn riêng với NOVA", value="dm"),
                     discord.SelectOption(label="Kênh riêng", value="channel"),
-                    discord.SelectOption(label="DM, lỗi quyền thì kênh riêng", value="fallback"),
+                    discord.SelectOption(
+                        label="Tin riêng; bị chặn thì dùng kênh dự phòng", value="fallback"
+                    ),
                 ],
                 self.target,
                 row=1,
             )
         )
+        if policy["kind"] == "weekly":
+            self.add_item(
+                Choice(
+                    "Gửi tổng kết vào ngày nào?",
+                    [
+                        discord.SelectOption(
+                            label=name, value=str(day), default=day == policy["weekday"]
+                        )
+                        for day, name in enumerate(DAYS)
+                    ],
+                    self.weekday,
+                    row=2,
+                )
+            )
 
     def args(self, **changes):
         return {**{k: v for k, v in self.policy.items() if k != "version"}, **changes}
@@ -376,12 +518,8 @@ class PolicyView(PersonalView):
         return discord.Embed(
             title=f"NOVA — {REPORT_NAMES[p['kind']]}",
             description=(
-                f"{'BẬT' if p['enabled'] else 'TẮT'} • {p['time']} • "
-                f"ngày {p['weekday']} (0=Hai…6=CN)\n"
-                f"Gửi: {p['target']} • Kênh: {p['channel_id'] or 'chưa chọn'} • "
-                f"Fallback: {p['fallback']}\n"
-                "Mỗi thay đổi cần Duyệt. Theo timezone Settings và giờ yên lặng; "
-                "không gửi bù quá 2 giờ."
+                policy_summary(p) + "\n\nĐổi giờ hoặc nơi nhận, xem lại rồi Duyệt. "
+                "Giờ yên lặng được cài ở Nhắc việc → Cài đặt gửi."
             ),
         )
 
@@ -391,17 +529,22 @@ class PolicyView(PersonalView):
         )
 
     async def time(self, interaction):
+        await self.edit_time(interaction, self.policy["weekday"])
+
+    async def weekday(self, interaction, values):
+        await self.edit_time(interaction, int(values[0]))
+
+    async def edit_time(self, interaction, weekday):
         async def submit(i, fields):
             await self.personal.propose(
-                i, "configure_automation", self.args(time=fields[0], weekday=int(fields[1]))
+                i, "configure_automation", self.args(time=fields[0], weekday=weekday)
             )
 
         await self.modal(
             interaction,
-            "Giờ báo cáo",
+            "Giờ nhận bản tin",
             [
-                ("Giờ local HH:MM", self.policy["time"], 5),
-                ("Ngày tuần: 0=Hai…6=CN (weekly)", self.policy["weekday"], 1),
+                ("Giờ gửi (giờ:phút, ví dụ 07:00)", self.policy["time"], 5),
             ],
             submit,
         )

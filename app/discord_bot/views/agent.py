@@ -12,18 +12,20 @@ class AgentPanel(OwnerView):
             and dashboard.client.agent.config.ready
         )
         embed = discord.Embed(
-            title="NOVA — AI Assistant",
-            description=("AI sẵn sàng. " if ready else "AI chưa bật/cấu hình. ")
-            + "Nhắn DM: ‘Hôm nay có việc gì?’, ‘Tạo task học Docker’, "
-            "‘Nhắc tôi lúc 18h ngày mai’.\nMọi thay đổi cần xem đề xuất và bấm Duyệt. "
-            "Hội thoại chỉ giữ trong RAM tối đa 30 phút, mất khi restart. "
-            "Memory dài hạn chỉ lưu sau khi bạn Duyệt; xem/sửa/xóa ở Memory.",
+            title="NOVA — Trò chuyện với trợ lý",
+            description=("NOVA sẵn sàng trò chuyện. " if ready else "Trò chuyện AI chưa được bật. ")
+            + "Bấm **Mở tin nhắn riêng** rồi nhắn như đang nói với một trợ lý:\n"
+            "• Hôm nay có việc gì?\n• Tạo việc học Docker.\n"
+            "• Nhắc tôi lúc 18h ngày mai.\n\n"
+            "NOVA sẽ hỏi khi thiếu thông tin. Nếu có đề xuất thay đổi, bạn đọc rồi bấm **Duyệt**. "
+            "Thông tin muốn nhớ lâu cũng cần bạn duyệt; quản lý ở **Ghi nhớ**.",
         )
         view = cls(dashboard)
         if dashboard.client.user:
             view.add_item(
                 discord.ui.Button(
-                    label="Mở DM", url=f"https://discord.com/users/{dashboard.client.user.id}"
+                    label="Mở tin nhắn riêng",
+                    url=f"https://discord.com/users/{dashboard.client.user.id}",
                 )
             )
         view.add_item(NavigateButton(dashboard, Screen.HOME, label="Back", row=1))

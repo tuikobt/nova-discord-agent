@@ -14,7 +14,6 @@ from app.discord_bot.reminder_controller import ReminderController
 from app.discord_bot.renderers.dashboard import (
     render_dashboard,
     render_error,
-    render_help,
     render_module,
     render_settings,
 )
@@ -134,7 +133,9 @@ class DashboardController:
 
                 embed, view = AgentPanel.build(self)
             elif route == Screen.HELP:
-                embed, view = render_help(), PanelView(self, route)
+                from app.discord_bot.views.guide import GuideView, render_guide
+
+                embed, view = render_guide(), GuideView(self)
             elif route == Screen.SETTINGS:
                 preferences = await self.settings.get(interaction.user.id)
                 personal = (
