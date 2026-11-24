@@ -2,6 +2,11 @@
 
 Ngày kiểm tra: 2026-11-24. Phạm vi: Phase 6; không bắt đầu Phase 7.
 
+**Phase 6 DONE — owner xác nhận hoàn thành ngày 2026-11-24**, qua yêu cầu
+“update cho tôi phase 6 đã xong”. Kết quả tự động cuối cùng đã ghi nhận:
+**803 passed in 70.85s**, lint/format/compile đạt. Phiên cập nhật trạng thái này
+chỉ sửa tài liệu; không chạy lại tests, gọi API hoặc thay đổi database.
+
 Giao diện tiếp tục được tối ưu theo phản hồi người dùng:
 [hướng dẫn sử dụng hiện tại](HUONG_DAN_SU_DUNG.md) và [báo cáo UX](PHASE_6_UX.md).
 Các tên màn hình tiếng Anh dưới đây mô tả bản triển khai ban đầu.
@@ -14,8 +19,12 @@ Các tên màn hình tiếng Anh dưới đây mô tả bản triển khai ban �
   tests chặn kết nối mạng. Không suy ra nghiệm thu Discord thật từ các mocks này.
 - Tests backup/upgrade/restore từ P5 có dữ liệu, rollback DDL bị gián đoạn,
   và downgrade từ chối xóa lịch sử P6 đều đạt.
-- Chờ owner kiểm tra thao tác trên Discord trước khi đánh dấu toàn bộ P6 DONE.
-  README/ROADMAP ghi P6 đã triển khai, chờ nghiệm thu; không đánh dấu DONE sớm.
+- Sau bản đầu 780 tests và tối ưu UX 790 tests, đã sửa lỗi kết nối AI, đạt
+  **803 tests pass** và xác minh OpenAI gọi `get_today_overview` thật. Chi tiết:
+  [sửa lỗi DM](DM_CONNECTION_FIX_2026-11-24.md).
+- Owner xác nhận tổng thể P6 hoàn thành; README/ROADMAP cập nhật DONE. Owner
+  không liệt kê riêng từng phép thử live. Các biến thể không có bằng chứng live
+  vẫn được ghi là kiểm thử tự động, không suy diễn từ xác nhận tổng thể.
 
 ### Database vận hành và khởi động
 
@@ -191,4 +200,5 @@ Quét đầy đủ Git đã chạy thêm `python -m app.security_check --history
 5. Kiểm tra trên Desktop/Mobile; restart rồi thử nút báo cáo/đề xuất còn TTL.
    Tài khoản khác phải bị chặn. Kênh public phải bị từ chối.
 
-Chưa ghi nhận owner hoàn tất các bước live ở thời điểm viết báo cáo.
+Owner đã yêu cầu chốt P6 DONE ngày 2026-11-24. Checklist trên được giữ để dùng
+kiểm tra lại; không có xác nhận chi tiết riêng cho từng bước/thiết bị.

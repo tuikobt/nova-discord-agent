@@ -1,8 +1,8 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái:** Phase 5 đã nghiệm thu. **Phase 6 đã triển khai Memory, Planner và bản tin; đã tối ưu giao diện, chờ nghiệm thu Discord.** DB Windows ở `0006_personal`, migration đã bảo toàn dữ liệu Phase 1–5. Kiểm thử sau chỉnh giao diện: **790 tests pass**, lint/format đạt; chi tiết tại [báo cáo UX](docs/PHASE_6_UX.md). Chưa đánh dấu toàn bộ P6 DONE hoặc bắt đầu P7.
+> **Trạng thái: Phase 6 DONE — người dùng xác nhận hoàn thành ngày 2026-11-24.** Đã có ghi nhớ có duyệt, lập kế hoạch, bản tin sáng/ngày/tuần và giao diện tiếng Việt. DB Windows ở `0006_personal`, migration đã bảo toàn dữ liệu Phase 1–5. Kết quả tự động gần nhất: **803 tests pass**, lint/format đạt; đã sửa kết nối AI và kiểm chứng tool đọc dữ liệu thật. Phạm vi nghiệm thu, backup và rollback tại [báo cáo P6](docs/PHASE_6_VALIDATION.md). Phase 7 chưa bắt đầu.
 >
-> **Cập nhật:** giao diện Phase 6, 2026-11-24 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
+> **Cập nhật:** nghiệm thu Phase 6, 2026-11-24 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
 
 **Dùng NOVA:** mở `/menu` → **Hướng dẫn** → **Bắt đầu trong 5 phút**. Muốn trò chuyện, chọn **Nhắn NOVA** → **Mở tin nhắn riêng**. [Hướng dẫn sử dụng theo từng việc](docs/HUONG_DAN_SU_DUNG.md).
 
@@ -36,6 +36,9 @@ NOVA là **trợ lý AI cá nhân trên Discord**, dùng **tin nhắn riêng đ�
 | 18 | [`docs/PHASE_4_FINAL_CHECK.md`](docs/PHASE_4_FINAL_CHECK.md) | Nghiệm thu P4: 625 tests, DB/Discord thật, DM/nút Đã làm và xác nhận người dùng |
 | 19 | [`docs/PHASE_5_PLAN.md`](docs/PHASE_5_PLAN.md) | Kế hoạch các luồng DM/tools/approvals/limits của P5 |
 | 20 | [`docs/PHASE_5_VALIDATION.md`](docs/PHASE_5_VALIDATION.md) | Nghiệm thu P5: 687 tests, OpenAI/Discord thật, cấu hình và rollback |
+| 21 | [`docs/PHASE_6_VALIDATION.md`](docs/PHASE_6_VALIDATION.md) | Nghiệm thu P6: ghi nhớ, lập kế hoạch, bản tin, bảo toàn dữ liệu và rollback |
+| 22 | [`docs/PHASE_6_UX.md`](docs/PHASE_6_UX.md) | Giao diện tiếng Việt và hướng dẫn theo từng việc |
+| 23 | [`docs/DM_CONNECTION_FIX_2026-11-24.md`](docs/DM_CONNECTION_FIX_2026-11-24.md) | Sửa kết nối AI, 803 tests và phép thử OpenAI thật |
 | — | [`AGENTS.md`](AGENTS.md) | Quy ước bắt buộc dành cho Codex/AI lập trình |
 
 ## Trạng thái module
@@ -47,7 +50,7 @@ NOVA là **trợ lý AI cá nhân trên Discord**, dùng **tin nhắn riêng đ�
 | Tasks, Projects, Calendar | Phase 3 | Nghiệm thu tự động đạt; Discord live chưa xác minh |
 | Reminders tự động | Phase 4 | ✅ DONE — người dùng xác nhận đã kiểm thử ngày 2026-11-17 |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | ✅ DONE — người dùng xác nhận hoạt động ngày 2026-11-18 |
-| Ghi nhớ, lập kế hoạch, bản tin sáng/ngày/tuần | Phase 6 | Đã triển khai và kiểm thử; đang chờ nghiệm thu trải nghiệm Discord |
+| Ghi nhớ, lập kế hoạch, bản tin sáng/ngày/tuần | Phase 6 | ✅ DONE — người dùng xác nhận hoàn thành 2026-11-24 |
 | Goals, Finance, Habits, Notes, integrations, deploy | Phase 7+ | Chưa bắt đầu |
 
 ## Cấu trúc source hiện tại

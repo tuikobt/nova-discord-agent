@@ -23,8 +23,10 @@ này tập trung vào Discord, không thay schema hay cài đặt đang lưu.
 
 ## Phạm vi và nghiệm thu
 
-P6 đã có chức năng và bộ tự động trước thay đổi là 780 tests pass. Chưa coi phản
-hồi “khó hiểu” là owner đã nghiệm thu; trạng thái P6 vẫn chờ dùng thử giao diện.
+P6 đã có chức năng và bộ tự động trước thay đổi là 780 tests pass. Phản hồi
+“khó hiểu” là yêu cầu cải thiện UX, chưa phải xác nhận nghiệm thu ở thời điểm đó.
+Sau cải thiện UX và sửa kết nối DM, owner yêu cầu chốt P6 DONE ngày 2026-11-24.
+Kết quả cuối cùng 803 tests pass tại [báo cáo sửa lỗi DM](DM_CONNECTION_FIX_2026-11-24.md).
 Không tự bật bản tin, đổi giờ làm, sửa ghi nhớ hoặc đổi dữ liệu nghiệp vụ.
 
 Tests mới kiểm tra hướng dẫn/owner guard, giữ ID cũ, chọn loại/weekday trước
@@ -50,5 +52,6 @@ Rollback UI có thể dùng bản P6 trước UX ở commit `62a9694` sau khi b�
 hiện tại và dừng bot; giữ nguyên schema `0006_personal`, không cần downgrade DB.
 
 Để thử bản mới, mở lại `/menu`: bảng neo được cập nhật bằng chính tin nhắn đã
-lưu. Chọn **Hướng dẫn** → **Bắt đầu trong 5 phút**. Chờ owner phản hồi sau dùng
-thực tế rồi mới đánh dấu P6 DONE; tiếp tục dừng trước P7.
+lưu. Chọn **Hướng dẫn** → **Bắt đầu trong 5 phút**. P6 đã chốt DONE theo xác nhận
+tổng thể của owner; phạm vi bằng chứng tại [báo cáo P6](PHASE_6_VALIDATION.md).
+P7 chưa bắt đầu.

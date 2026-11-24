@@ -12,7 +12,7 @@
 | P3 | Core Management | 🟨 Nghiệm thu tự động đạt — Discord live chưa xác minh | Tasks, Projects, Calendar (DB CRUD + conflicts) |
 | P4 | Reminder Engine | ✅ DONE (2026-11-17, người dùng nghiệm thu) | Reminder Engine/UI, 625 tests, DB/Discord thật và DM/Đã làm |
 | P5 | AI Agent | ✅ DONE (2026-11-18, người dùng nghiệm thu) | AI DM/Responses tools, durable approvals, usage limits, 687 tests và read/create-task live |
-| P6 | Memory & Proactive Automation | 🟨 Source/tests đạt — đang hoàn thiện UX, chờ nghiệm thu Discord | Memory controls, planner, morning/daily/weekly reports |
+| P6 | Memory & Proactive Automation | ✅ DONE (2026-11-24, người dùng nghiệm thu) | Memory controls, planner, morning/daily/weekly reports, UI tiếng Việt; 803 tests |
 | P7 | Expansion & Deployment | ⬜ NOT STARTED | Goals/Finance/Habits/Notes, integrations optional, Docker/VPS |
 
 **P0 DONE nghĩa là xong tài liệu thiết kế, không có nghĩa bot đã chạy.** Chỉ đánh dấu P1–P7 `DONE` khi đạt toàn bộ acceptance tương ứng và đã kiểm thử.
@@ -201,15 +201,20 @@ usage không rõ giữ reservation. Chi phí theo tiền vẫn theo OpenAI Usage
 - [x] API timeout/error không ghi nghiệp vụ, không giả receipt; CRUD/reminder hoạt động độc lập (tự động).
 - [x] Tokens/requests/reservations theo model được lưu, quota/rate/loop limits có tests; usage thực tế có records. Không báo ngân sách tiền chính xác khi chưa cấu hình giá.
 
-## 8. Phase 6 — Personal Memory & Automation
+## 8. Phase 6 — Personal Memory & Automation ✅
 
-Đã triển khai schema `0006_personal`, Memory/Planner/Reports, nâng DB giữ nguyên
-dữ liệu P1–5, baseline 780 tests pass. Theo yêu cầu cải thiện trải nghiệm, đã
-tối ưu giao diện và hướng dẫn, đạt **790 tests pass**; chưa đánh dấu P6 DONE.
-Xem [báo cáo P6](PHASE_6_VALIDATION.md),
-[điều chỉnh UX](PHASE_6_UX.md) và [hướng dẫn sử dụng](HUONG_DAN_SU_DUNG.md).
-Các checkbox bên dưới chờ owner xác nhận sử dụng trên Discord; không phải trạng
-thái chưa triển khai. P7 chưa bắt đầu.
+**Nghiệm thu 2026-11-24:** người dùng yêu cầu “update cho tôi phase 6 đã xong”.
+Đã hoàn thành schema `0006_personal`, Memory/Planner/Reports, nâng DB giữ nguyên
+dữ liệu P1–5 và tối ưu giao diện tiếng Việt/hướng dẫn. Sau sửa lỗi kết nối DM,
+bộ tự động gần nhất **803 passed in 70.85s**, lint/format/compile đạt; OpenAI
+thật gọi `get_today_overview` thành công và bot khởi động lại có quyền mạng phù hợp.
+Xem [báo cáo P6](PHASE_6_VALIDATION.md), [điều chỉnh UX](PHASE_6_UX.md),
+[sửa lỗi DM](DM_CONNECTION_FIX_2026-11-24.md) và [hướng dẫn sử dụng](HUONG_DAN_SU_DUNG.md).
+
+P6 DONE theo bộ kiểm thử và xác nhận tổng thể của owner. Owner không liệt kê
+riêng từng kịch bản live; không ghi các biến thể Desktop/Mobile, quiet hours,
+fallback và restart đã được Codex thử live nếu chỉ có bằng chứng tự động.
+P7 chưa bắt đầu.
 
 ### Work packages
 
@@ -220,10 +225,10 @@ thái chưa triển khai. P7 chưa bắt đầu.
 
 ### Acceptance P6
 
-- [ ] Bật/tắt, đổi giờ briefing và report; không gửi ngoài quiet hours (trừ cảnh báo thật sự quan trọng được thiết lập).
-- [ ] Memory có UI xem/sửa/xóa và không tự biến suy đoán thành sự thật.
-- [ ] Planner phân biệt `proposed` và `confirmed`.
-- [ ] Daily review không bịa số liệu cho ngày thiếu dữ liệu.
+- [x] Bật/tắt, đổi giờ briefing/report và không gửi trong giờ yên lặng; có tests trì hoãn/catch-up, không có bypass trong P6.
+- [x] Memory có UI xem/sửa/xóa; chỉ dùng nội dung owner đã duyệt, có validation và tests chống dùng gợi ý chưa xác nhận.
+- [x] Planner phân biệt đề xuất chưa lưu và lịch confirmed; tests kiểm tra approval, stale/conflict và transaction.
+- [x] Daily review dùng số liệu thật từ DB; trường hợp chưa có dữ liệu được kiểm thử, không tự bịa năng suất.
 
 ## 9. Phase 7 — Advanced modules, Integrations & Production
 
@@ -271,3 +276,4 @@ thái chưa triển khai. P7 chưa bắt đầu.
 | 2026-11-17 | P4 | 4A/4B/4C hoàn tất; 625 tests pass, DB mới Windows theo yêu cầu, bot online và reminder DM gửi sau giờ hẹn khoảng 6,7 giây; Đã làm được ghi nhận, người dùng xác nhận kiểm thử xong; P4 DONE, chưa bắt đầu P5 |
 | 2026-11-18 | P5 | Hoàn thành AI DM/Responses tools, strict durable approvals/context/usage; 687 tests pass; migration bảo toàn 8 bảng cũ; OpenAI read thật, create_task executed/audit success, owner xác nhận hoạt động; P5 DONE, chưa bắt đầu P6 |
 | 2026-11-18 | Security review trước P6 | Rà soát Git/index/history và biên dữ liệu LLM; thêm pre-push/CI, credential redaction, tool minimization và prompt-output guard; xem SECURITY_REVIEW_2026-11-18.md. Không bắt đầu P6 |
+| 2026-11-24 | P6 | Hoàn thành Memory/Planner/Automation, UI tiếng Việt và sửa kết nối AI; DB 0006 bảo toàn P1–5, 803 tests pass, OpenAI read thật; người dùng yêu cầu chốt P6 DONE. P7 chưa bắt đầu |
