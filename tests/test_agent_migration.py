@@ -144,7 +144,7 @@ def test_downgrade_refuses_ai_history(settings, table):
                 assert await connection.scalar(text(f"SELECT count(*) FROM {table}")) == 1
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0006_personal"
+                    == "0007_connections"
                 )
         finally:
             await database.close()

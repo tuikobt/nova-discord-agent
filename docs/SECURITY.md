@@ -1,5 +1,30 @@
 # Security & Privacy — NOVA
 
+**7A.2 hiện tại:** đã cài GitHub HTTP reader/probe, chỉ chạy sau owner click và
+trong resource allowlist đã Duyệt. Owner/provider/version/resource checked
+trước/sau HTTP và sau chờ queue. Chỉ GET endpoint GitHub.com API cố định, không
+redirect hoặc fetch download URL; timeout, stream/document/page/call budget
+có giới hạn, không auto retry. Error body không được đọc, DTO lọc secret, nguồn
+backend dựng và UI escape nội dung. GitHub text chưa đi vào AI hoặc database,
+không có external writes/background reads. Token cấu hình trên máy với selected
+repos và các quyền read-only; chưa có flow refresh/App/OAuth tự động. Chưa có
+Notion adapter. Đoạn 7A.1 dưới đây mô tả checkpoint lịch sử; chi tiết hiện tại ở
+[báo cáo 7A.2](PHASE_7A2_VALIDATION.md).
+
+**7A.1:** connection chỉ giữ metadata và phạm vi chỉ đọc đã được owner Duyệt.
+Credential có hai tên cố định `GITHUB_READ_TOKEN`, `NOTION_READ_TOKEN`, chỉ lấy
+từ config trên máy/secret manager; không cho UI/model chọn tên secret tùy ý.
+Các token này được đăng ký với bộ lọc log/AI và scanner Git; không gửi token
+cho LLM. Có backstop nhận dạng token Notion ngoài exact-match các secret đã cấu
+hình. Bộ lọc không thay thế việc giữ secrets ngoài Git.
+
+Không có production HTTP adapter trong 7A.1, không đọc GitHub/Notion hoặc gọi
+probe nền. Các identifier chỉ chuẩn hóa từ repo/page ID hoặc host HTTPS chính
+thức; không fetch URL người dùng cung cấp. Scope gate kiểm tra owner, tài nguyên,
+version, permission read và trạng thái ngắt ở backend. Model không được cung
+cấp tool thêm/sửa/ngắt kết nối; những thao tác này chỉ đi qua UI riêng có duyệt.
+Phép thử AI cần click rõ ràng, dùng quota và không kèm context cá nhân.
+
 **Review trước P6 (2026-11-18):** xem [báo cáo bảo mật](SECURITY_REVIEW_2026-11-18.md)
 cho phạm vi scan Git, prompt/public-source boundary, dữ liệu gửi model và các giới hạn.
 Đã thêm local pre-push hook + CI check, lọc credential cả Discord/OpenAI, giảm tool

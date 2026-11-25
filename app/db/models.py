@@ -90,6 +90,42 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
 
 
+class IntegrationConnection(Base):
+    __tablename__ = "integration_connections"
+    __table_args__ = (
+        CheckConstraint("provider IN ('github','notion')", name="provider"),
+        CheckConstraint("status IN ('configured','verified','disconnected')", name="status"),
+        CheckConstraint("version > 0", name="version"),
+        CheckConstraint("length(trim(label)) BETWEEN 1 AND 80", name="label"),
+        CheckConstraint(
+            "(provider = 'github' AND credential_ref = 'GITHUB_READ_TOKEN') OR "
+            "(provider = 'notion' AND credential_ref = 'NOTION_READ_TOKEN')",
+            name="credential_ref",
+        ),
+        UniqueConstraint(
+            "owner_id", "provider", "label", name="uq_connection_owner_provider_label"
+        ),
+        Index("ix_connection_owner_status", "owner_id", "status"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(
+        String(24), ForeignKey("users.discord_user_id"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)
+    label: Mapped[str] = mapped_column(String(80), nullable=False)
+    resources_json: Mapped[list] = mapped_column(JSON, nullable=False)
+    credential_ref: Mapped[str] = mapped_column(String(32), nullable=False)
+    requested_permissions_json: Mapped[list] = mapped_column(JSON, nullable=False)
+    granted_permissions_json: Mapped[list | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(20), default="configured", nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utc_now, nullable=False)
+    last_checked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    last_error_code: Mapped[str | None] = mapped_column(String(32))
+    __mapper_args__ = {"version_id_col": version}
+
+
 class MemoryEntry(Base):
     __tablename__ = "memory_entries"
     __table_args__ = (

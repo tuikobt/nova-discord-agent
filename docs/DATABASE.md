@@ -1,5 +1,11 @@
 # Database Design — NOVA
 
+**7A.2 không có migration:** head giữ `0007_connections`. Bộ đọc GitHub chỉ
+trả dữ liệu tạm cho private UI, không lưu raw file/issue/PR vào DB. Kiểm tra
+dịch vụ do owner bấm cập nhật metadata verification/audit/version theo service
+kết nối 7A.1; đọc một tài nguyên không tự tạo task/note/memory. Schema và toàn
+bộ rows của DB thật khớp backup trước cập nhật; xem [báo cáo 7A.2](PHASE_7A2_VALIDATION.md).
+
 ## Quyết định triển khai P5 (2026-11-18)
 
 Migration `0005_agent` chỉ thêm `pending_actions` và `agent_usage`; không thay bảng P1–P4.
@@ -185,7 +191,7 @@ Index `(owner_id, created_at)`.
 | `habit_definitions`, `habit_logs` | P7 | Thói quen và check-ins |
 | `finance_transactions`, `budgets` | P7 | Ghi thu chi thủ công, **không đồng bộ ngân hàng tự động** |
 | `notes` | P7 | Ghi chú có search |
-| `integration_connections` | P7+ | Chỉ metadata; token phải encrypted/secret store |
+| `integration_connections` | P7A.1 | Chỉ metadata/phạm vi đã duyệt; token ở `.env` hoặc secret manager |
 
 ## 4. Sơ đồ quan hệ rút gọn
 
@@ -313,3 +319,36 @@ quiet hours trì hoãn trong cửa sổ. Không cam kết exactly-once ở Disco
 Downgrade về 0005 chỉ khi ba bảng rỗng và không có agent_usage background. Có dữ
 liệu thì từ chối; không tự delete để downgrade. Backup/restore/drill, tests và
 phạm vi nghiệm thu ở [PHASE_6_VALIDATION](PHASE_6_VALIDATION.md).
+
+## 13. Persistence Phase 7A.1
+
+Revision `0007_connections` nối tiếp `0006_personal`, chỉ thêm bảng
+`integration_connections` và index owner/status. Không sửa bảng, cột hoặc bản ghi
+P1–6. Chưa lưu nội dung repo/trang, cache hay external action.
+
+| Trường | Hợp đồng |
+|---|---|
+| id, owner_id | UUID PK, FK tới users; mọi service query có owner scope |
+| provider, label | github/notion; tên 1–80 ký tự; unique(owner, provider, label) |
+| resources_json | 1–10 repo hoặc ID trang chuẩn hóa, không trùng; không fetch URL nhập vào |
+| credential_ref | Chỉ GITHUB_READ_TOKEN cho GitHub hoặc NOTION_READ_TOKEN cho Notion; không lưu token |
+| requested_permissions_json | Chỉ `["read"]`, được owner duyệt qua pending_action |
+| granted_permissions_json | NULL khi chưa kiểm tra; không suy ra quyền từ việc có token |
+| status, version | configured/verified/disconnected; version > 0, optimistic concurrency |
+| created_at, updated_at, last_checked_at | UTC-aware trong application; last_checked_at NULL nếu chưa gọi provider |
+| last_error_code | Mã lỗi allowlist; không giữ response body, URL có credential hoặc exception text |
+
+Thêm/sửa/ngắt đều dùng durable pending_actions P5: owner + message/channel binding,
+TTL 15 phút, so lại snapshot/version và receipt/audit trong cùng transaction.
+Ngắt giữ metadata để không mất lịch sử, chặn quyền đọc mới và xóa context AI
+trong RAM. Không tự thu hồi token tại nhà cung cấp.
+
+7A.1 chỉ có protocol cho phép kiểm tra; chưa cài HTTP adapter GitHub/Notion.
+Không có credential trả `missing_credential`, có credential nhưng chưa có adapter
+trả `adapter_pending`; cả hai không gọi mạng và không gắn nhãn verified. Tests
+probe dùng mock, không phải bằng chứng đã đọc được nguồn thật.
+
+Downgrade về 0006 từ chối nếu có bất kỳ connection hoặc pending_action kết nối,
+kể cả connection đã ngắt hoặc đề xuất chưa thực thi. Không xóa dữ liệu để ép
+downgrade. Quy trình backup/restore và giới hạn tại
+[báo cáo 7A.1](PHASE_7A1_VALIDATION.md).

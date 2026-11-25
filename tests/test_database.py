@@ -44,10 +44,11 @@ def test_migration_from_empty_database_is_idempotent_and_matches_models(settings
                     "memory_entries",
                     "automation_policies",
                     "automation_runs",
+                    "integration_connections",
                 }
                 assert await connection.scalar(text("PRAGMA foreign_keys")) == 1
                 assert await connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                    "0006_personal"
+                    "0007_connections"
                 )
                 differences = await connection.run_sync(
                     lambda conn: compare_metadata(MigrationContext.configure(conn), Base.metadata)

@@ -1,5 +1,35 @@
 # Discord UI Specification — NOVA
 
+## Phase 7A.2 — Đọc GitHub riêng tư
+
+Trên chi tiết connection GitHub chưa ngắt có nút **Đọc GitHub**. Chọn repo đã
+Duyệt trong select; chỉ sau click mới đọc metadata. Có nút **Issues**, **Pull
+requests**, **Đọc tài liệu**, **Thông tin repo**, chọn repo khác và về Cài đặt.
+Danh sách lọc open/closed/all, phân trang tối đa 10 kết quả, chọn một mục để
+đọc chi tiết. Issues loại PR vì API có thể gộp cả hai, không trình bày số trang
+thành tổng số mục repo. Tài liệu nhập path cụ thể như README.md/docs/guide.md,
+không chọn URL ngoài. Body dài rút gọn có nhãn, mọi kết quả có nguồn và giờ lấy.
+
+Mở connection/list repo không gọi GitHub; chọn hành động đọc mới gọi. Thiếu key,
+scope đã ngắt/sửa, không đủ quyền hoặc timeout hiện lỗi an toàn, không số liệu
+giả. Kết quả verification là lần kiểm tra gần nhất; từng read vẫn kiểm quyền.
+Nội dung không được gửi sang AI hoặc lưu DB. Bản này chưa có bộ đọc Notion.
+Các giới hạn/chờ nghiệm thu live ở [7A.2](PHASE_7A2_VALIDATION.md).
+
+## Phase 7A.1 — Phạm vi kết nối và chẩn đoán
+
+Mở `/menu` → **Cài đặt** → **Kết nối & chẩn đoán**. Panel riêng cho owner,
+có Làm mới kết nối và Settings để quay lại. Danh sách phân trang 5 kết nối.
+Thêm GitHub/Notion chỉ nhập tên và repo/link hoặc ID trang; không nhập token
+trên Discord. Mọi thêm/sửa/ngắt mở đề xuất riêng, đọc đủ các trang rồi Duyệt.
+
+Trạng thái Discord dựa trên client readiness. OpenAI chỉ ghi đã cấu hình;
+nút **Thử AI (tính quota)** mới gọi API với câu kiểm tra tổng hợp, không kèm
+dữ liệu cá nhân hay tools, kết quả tính quota P5. Mở panel không tự gọi AI.
+Kiểm tra dịch vụ phân biệt thiếu credential với chưa có adapter. Bản 7A.1
+chưa đọc repo/trang; không hiển thị dữ liệu mẫu hoặc báo đã kết nối thành công.
+Ngắt trong NOVA chặn quyền dùng nguồn, không tự thu hồi token ở provider.
+
 ## P5 — AI Assistant DONE, owner xác nhận hoạt động 2026-11-18
 
 Đã xác minh OpenAI đọc dữ liệu và một create-task proposal executed/audit success;

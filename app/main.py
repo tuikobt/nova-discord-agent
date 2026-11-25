@@ -24,7 +24,12 @@ def main() -> int:
     except ConfigurationError as error:
         print(f"Lỗi cấu hình: {error}", file=sys.stderr)
         return 2
-    configure_logging(settings.log_level, settings.discord_token, settings.ai.key)
+    configure_logging(
+        settings.log_level,
+        settings.discord_token,
+        settings.ai.key,
+        *settings.connections.registered(),
+    )
     try:
         asyncio.run(run_bot(settings))
     except KeyboardInterrupt:

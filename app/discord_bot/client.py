@@ -14,9 +14,11 @@ from app.discord_bot.report_sender import DiscordReportSender
 from app.discord_bot.views.personal import ReportButton
 from app.discord_bot.views.reminders import NotificationButton
 from app.domain.authorization import OwnerAuthorization
+from app.integrations.github import GitHubHTTP, GitHubReader
 from app.scheduler.automation import AutomationDispatcher
 from app.scheduler.dispatcher import ReminderDispatcher
 from app.services.core_management import CoreServices
+from app.services.github_service import GitHubService
 from app.services.settings_service import SettingsService
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,13 @@ class NovaClient(discord.Client):
             self, self.authorization, self.settings_service, self.core_services
         )
         self.agent = AgentController(self)
+        self.core_services.connections.credentials = settings.connections
+        self.core_services.connections.secrets = self.agent.orchestrator.secrets
+        self.core_services.connections.on_change = self.agent.orchestrator.clear
+        self.github_http = GitHubHTTP()
+        github_reader = GitHubReader(self.github_http)
+        self.core_services.connections.probes["github"] = github_reader
+        self.github = GitHubService(self.core_services.connections, github_reader)
         self.core_services.personal.channel_validator = self.reminder_sender.validate_channel
         self.report_sender = DiscordReportSender(self, self.reminder_sender)
         self.automation_dispatcher = AutomationDispatcher(
@@ -101,6 +110,7 @@ class NovaClient(discord.Client):
         await self.automation_dispatcher.stop()
         await self.reminder_dispatcher.stop()
         await self.agent.close()
+        await self.github_http.close()
         try:
             await super().close()
         finally:

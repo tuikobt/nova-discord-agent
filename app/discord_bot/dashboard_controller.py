@@ -5,6 +5,7 @@ import logging
 import discord
 
 from app.discord_bot.checks import authorize_interaction
+from app.discord_bot.connections_controller import ConnectionsController
 from app.discord_bot.core_controller import CoreController
 from app.discord_bot.core_state import CORE_SCREENS, CoreRoute
 from app.discord_bot.dashboard_publisher import DashboardPublisher, DashboardPublishError
@@ -44,6 +45,7 @@ class DashboardController:
         self.core = CoreController(self, core_services)
         self.reminders = ReminderController(self, getattr(core_services, "reminders", None))
         self.personal = PersonalController(self, core_services)
+        self.connections = ConnectionsController(self, getattr(core_services, "connections", None))
 
     async def restore(self) -> None:
         preferences = await self.settings.get(self.authorization.owner_id)

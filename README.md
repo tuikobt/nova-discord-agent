@@ -1,8 +1,8 @@
 # NOVA AI — Discord Personal Assistant
 
-> **Trạng thái: Phase 6 DONE — người dùng xác nhận hoàn thành ngày 2026-11-24.** Đã có ghi nhớ có duyệt, lập kế hoạch, bản tin sáng/ngày/tuần và giao diện tiếng Việt. DB Windows ở `0006_personal`, migration đã bảo toàn dữ liệu Phase 1–5. Kết quả tự động gần nhất: **803 tests pass**, lint/format đạt; đã sửa kết nối AI và kiểm chứng tool đọc dữ liệu thật. Phạm vi nghiệm thu, backup và rollback tại [báo cáo P6](docs/PHASE_6_VALIDATION.md). Phase 7 chưa bắt đầu.
+> **Trạng thái: Phase 7 đang triển khai — 7A.2 code/tests đạt, chờ thử GitHub thật.** Có quản lý phạm vi kết nối có duyệt và bộ đọc GitHub riêng trên Discord: repo, issues/PR, tài liệu nhỏ. **961 tests pass**, lint/format/security scan đạt; bot đã khởi động lại. DB vẫn `0007_connections`, không có migration mới, dữ liệu khớp backup. Chưa có token/phạm vi GitHub để thử thật; chưa có Notion hoặc tools AI đọc nguồn. File thay đổi, cấu hình và rollback: [báo cáo 7A.2](docs/PHASE_7A2_VALIDATION.md). P6 vẫn DONE theo xác nhận ngày 2026-11-24.
 >
-> **Cập nhật:** nghiệm thu Phase 6, 2026-11-24 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
+> **Cập nhật:** Phase 7A.2, 2026-11-25 · **Ngôn ngữ:** Tiếng Việt · **Múi giờ mặc định:** `Asia/Ho_Chi_Minh`
 
 **Dùng NOVA:** mở `/menu` → **Hướng dẫn** → **Bắt đầu trong 5 phút**. Muốn trò chuyện, chọn **Nhắn NOVA** → **Mở tin nhắn riêng**. [Hướng dẫn sử dụng theo từng việc](docs/HUONG_DAN_SU_DUNG.md).
 
@@ -39,6 +39,9 @@ NOVA là **trợ lý AI cá nhân trên Discord**, dùng **tin nhắn riêng đ�
 | 21 | [`docs/PHASE_6_VALIDATION.md`](docs/PHASE_6_VALIDATION.md) | Nghiệm thu P6: ghi nhớ, lập kế hoạch, bản tin, bảo toàn dữ liệu và rollback |
 | 22 | [`docs/PHASE_6_UX.md`](docs/PHASE_6_UX.md) | Giao diện tiếng Việt và hướng dẫn theo từng việc |
 | 23 | [`docs/DM_CONNECTION_FIX_2026-11-24.md`](docs/DM_CONNECTION_FIX_2026-11-24.md) | Sửa kết nối AI, 803 tests và phép thử OpenAI thật |
+| 24 | [`docs/PHASE_7_PLAN.md`](docs/PHASE_7_PLAN.md) | Kế hoạch P7 chia 7A–7F; đã triển khai code/tests 7A.1–7A.2 |
+| 25 | [`docs/PHASE_7A1_VALIDATION.md`](docs/PHASE_7A1_VALIDATION.md) | Khung kết nối/chẩn đoán, 863 tests, migration/backup/rollback và checklist owner |
+| 26 | [`docs/PHASE_7A2_VALIDATION.md`](docs/PHASE_7A2_VALIDATION.md) | GitHub reader/UI, 961 tests, giới hạn, cấu hình và rollback; chờ thử provider thật |
 | — | [`AGENTS.md`](AGENTS.md) | Quy ước bắt buộc dành cho Codex/AI lập trình |
 
 ## Trạng thái module
@@ -51,7 +54,9 @@ NOVA là **trợ lý AI cá nhân trên Discord**, dùng **tin nhắn riêng đ�
 | Reminders tự động | Phase 4 | ✅ DONE — người dùng xác nhận đã kiểm thử ngày 2026-11-17 |
 | AI Agent, chat tự nhiên, function tools | Phase 5 | ✅ DONE — người dùng xác nhận hoạt động ngày 2026-11-18 |
 | Ghi nhớ, lập kế hoạch, bản tin sáng/ngày/tuần | Phase 6 | ✅ DONE — người dùng xác nhận hoàn thành 2026-11-24 |
-| Goals, Finance, Habits, Notes, integrations, deploy | Phase 7+ | Chưa bắt đầu |
+| Phạm vi kết nối & chẩn đoán | Phase 7A.1 | Code/tests đạt, chờ owner thử UI |
+| GitHub chỉ đọc qua UI | Phase 7A.2 | Code/tests đạt; cần token/phạm vi và thử provider thật |
+| Notion, AI đọc nguồn, Goals, Finance, Habits, Notes, deploy | Phase 7A.3 trở đi | Chưa bắt đầu |
 
 ## Cấu trúc source hiện tại
 
@@ -187,7 +192,7 @@ Máy mới cần Python 3.12+, tạo venv và cài `requirements-dev.txt`. Head 
 - Hủy task/event, archive project, sửa lịch confirmed và giữ lịch trùng mở **Xác nhận thay đổi**. Xem trước/sau và các lịch trùng; nếu nhiều trang, **Duyệt** chỉ mở ở trang cuối. **Bỏ qua** không ghi. Token hết hạn tối đa 5 phút hoặc khi restart; phải xem/duyệt lại.
 - **Reminders → Thêm** nhập title, chọn ngày/giờ, một lần/daily/weekly, vị trí gửi và links task/event tùy chọn → **Lưu**. List 5 mục/trang, filter trạng thái, detail/lịch sử gửi, Sửa, Tạm dừng/Tiếp tục, Hủy, Back/Refresh. Sửa/hủy cần Duyệt. Notification có Đã làm, Hoãn 15 phút, Tắt; callbacks còn được nhận sau restart, backend kiểm tra owner/message/TTL.
 - **Reminders → Cài đặt gửi** quản lý DM, kênh dự phòng và quiet hours theo timezone Settings, có xác nhận. Kênh phải là TextChannel riêng trên server do owner sở hữu; @everyone/role/thành viên khác không được xem, ngoại trừ managed role của bot. DM bị chặn chỉ fallback vào kênh đã duyệt; không tự chọn kênh khác.
-- Home riêng hiển thị counts DB: Tasks không cancelled, Projects không archived, reminders active và lịch confirmed giao ngày local. Tiến độ project = done / task không cancelled. DB rỗng hiển thị 0/empty-state thật; module P6/P7 vẫn Sắp ra mắt. Bảng neo không công khai counts/settings.
+- Home riêng hiển thị counts DB: Tasks không cancelled, Projects không archived, reminders active và lịch confirmed giao ngày local. Tiến độ project = done / task không cancelled. DB rỗng hiển thị 0/empty-state thật; module P7 chưa triển khai vẫn Sắp ra mắt. Bảng neo không công khai counts/settings.
 - **AI Assistant** mở DM, Xóa ngữ cảnh và Sử dụng AI. Hỏi “Hôm nay có việc gì?”, “Tạo task học Docker”, “Nhắc tôi lúc 18h ngày mai”. Mọi write hiện dùng chế độ strict: xem đề xuất và bấm Duyệt; thiếu giờ thì hỏi lại. Đề xuất có TTL 15 phút, nút khôi phục sau restart, kiểm tra lại dữ liệu lúc duyệt; dời event cho chọn giữ giờ nhắc hoặc shift cùng event. Context RAM tối đa 20 messages/30 phút, mất khi restart; không có memory dài hạn P6.
 - Settings sửa timezone IANA, ví dụ `Asia/Ho_Chi_Minh` hoặc `UTC`; notification preferences sửa tại Reminders. Language/briefing/review/planner chưa có automation P6.
 - Panel riêng tư có thời hạn tối đa 10 phút; bản nháp và các bước chọn ngày/giờ giữ nguyên hạn của phiên, không gia hạn khi điều hướng. Modal tối đa 5 phút. Bảng neo không có timeout, các nút được đăng ký lại sau restart.
@@ -199,35 +204,35 @@ Worker poll 15 giây; tối đa 3 attempts, retry sau 1 và 5 phút; claim lease
 
 ## Database và migration
 
-SQLite dành cho một process local. 0001 tạo users/settings/audit; 0002 thêm Core; 0003 thêm reminders/deliveries; 0004 thêm 4 cột nullable cho retry/claim/ack; **0005** thêm pending_actions/agent_usage. Không rebuild bảng cũ. Startup tự migrate nên **dừng bot và backup DB cũ trước khi chạy source mới**. Giữ owner/settings/dashboard IDs; đổi config owner không được chiếm DB cũ.
+SQLite dành cho một process local. 0001 tạo users/settings/audit; 0002 thêm Core; 0003 thêm reminders/deliveries; 0004 thêm metadata retry/claim/ack; 0005 thêm pending_actions/agent_usage; 0006 thêm Memory/Automation; **0007** thêm connection metadata. Startup tự migrate nên **dừng bot và backup DB cũ trước khi chạy source mới**. Giữ owner/settings/dashboard IDs; đổi config owner không được chiếm DB cũ.
 
 Máy Windows hiện có `.env` cấu hình và `nova.db` mới do người dùng yêu cầu tạo; đã bootstrap đúng owner/settings và migrate head, không nhập hoặc xóa dữ liệu Linux. Preflight đã exit 0. Khi nâng cấp hoặc cài lại, xác định đúng DB theo [runbook](docs/PHASE_4BC_VALIDATION.md#backup-migrate-và-chạy-trên-máy-có-database-thật), backup trước rồi migrate/check. `.\.venv\Scripts\python.exe -m app.preflight` chỉ kiểm tra read-only và không in secret.
 
 Nâng cấp trong PowerShell, tại thư mục project, sau khi đã dừng bot:
 
 ```powershell
-$novaBackup = ".\backups\pre-phase-5-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".db"
+$novaBackup = ".\backups\pre-phase-7a1-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".db"
 .\.venv\Scripts\python.exe -m app.db.backup --output $novaBackup
 if ($LASTEXITCODE -ne 0) { throw "Backup thất bại; dừng nâng cấp." }
 .\.venv\Scripts\python.exe -m alembic current
 if ($LASTEXITCODE -ne 0) { throw "Không đọc được revision; dừng." }
-.\.venv\Scripts\python.exe -m alembic upgrade 0005_agent
+.\.venv\Scripts\python.exe -m alembic upgrade 0007_connections
 if ($LASTEXITCODE -ne 0) { throw "Migration thất bại; chưa chạy bot. Xem hướng dẫn restore." }
 .\.venv\Scripts\python.exe -m alembic check
 if ($LASTEXITCODE -ne 0) { throw "Schema chưa khớp; chưa chạy bot." }
 .\.venv\Scripts\python.exe -m alembic current
 ```
 
-Revision sau nâng cấp: `0005_agent`. Backup dùng DATABASE_URL như bot, gồm WAL đã commit, kiểm tra integrity và không overwrite. Chỉ cài mới thực sự chưa có dữ liệu mới dùng `alembic upgrade head` tạo DB mới; không thay file dữ liệu cũ chưa tìm thấy bằng DB rỗng. Rollback/restore: [runbook P5](docs/PHASE_5_VALIDATION.md#rollback).
+Revision sau nâng cấp: `0007_connections`. Backup dùng DATABASE_URL như bot, gồm WAL đã commit, kiểm tra integrity và không overwrite. Chỉ cài mới thực sự chưa có dữ liệu mới dùng `alembic upgrade head` tạo DB; không thay file dữ liệu cũ chưa tìm thấy bằng DB rỗng. Rollback/restore: [runbook 7A.1](docs/PHASE_7A1_VALIDATION.md#rollback).
 
-Mốc thời gian application luôn UTC-aware, SQLite chuẩn hóa UTC khi lưu và gắn UTC khi đọc; `tzdata` hỗ trợ Windows. Reminder worker gửi theo lịch active đã lưu; chưa có briefing/review/planner P6.
+Mốc thời gian application luôn UTC-aware, SQLite chuẩn hóa UTC khi lưu và gắn UTC khi đọc; `tzdata` hỗ trợ Windows. Reminder worker gửi theo lịch active đã lưu; briefing/review P6 chỉ chạy theo policy owner đã duyệt.
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic current
 .\.venv\Scripts\python.exe -m alembic check
 ```
 
-Giữ nguyên DATABASE_URL/file DB, backup riêng tư (`backups/` bị gitignore), chỉ một process SQLite. Downgrade 0005 → 0004 bị từ chối nếu có proposal/usage history; ưu tiên tắt AI và giữ dữ liệu. Các downgrade P4/P3 cũng yêu cầu bảng tương ứng rỗng. Không xóa dữ liệu để ép rollback.
+Giữ nguyên DATABASE_URL/file DB, backup riêng tư (`backups/` bị gitignore), chỉ một process SQLite. Downgrade 0007 → 0006 bị từ chối nếu có connection hoặc approval kết nối, kể cả đã ngắt/chưa thực thi. Các downgrade P6/P5/P4/P3 cũng có điều kiện giữ lịch sử; không xóa dữ liệu để ép rollback.
 
 UI 3B/3C vẫn dùng approvals thủ công trong RAM 5 phút. P5 bổ sung durable pending_actions/executor riêng, không bỏ các gates UI cũ. Service kiểm tra owner trước session; updates có owner + expected version/timestamp, trả DTO sau commit. Chi tiết tại [báo cáo 3B](docs/PHASE_3B_VALIDATION.md) và [P5](docs/PHASE_5_VALIDATION.md).
 
@@ -239,7 +244,7 @@ UI 3B/3C vẫn dùng approvals thủ công trong RAM 5 phút. P5 bổ sung durab
 .\.venv\Scripts\python.exe -m ruff format --check .
 ```
 
-Windows **Python 3.12.3: 687 passed in 40.45s**, lint/format/compile pass, là kết quả tự động gần nhất. Tests dùng SQLite tạm/mock Discord/OpenAI, chặn network. Nghiệm thu P5 riêng đã kiểm chứng OpenAI read tool thật, proposal create_task executed và audit success trong DB; owner xác nhận hoạt động. Lần chốt tài liệu không chạy lại tests. Các biến thể reschedule/bulk/expiry/restart/security có tests tự động, không tự ghi đã thử live riêng. Chi tiết: [báo cáo P5](docs/PHASE_5_VALIDATION.md); [nghiệm thu P4](docs/PHASE_4_FINAL_CHECK.md).
+Windows **Python 3.12.3: 961 passed in 65.34s**, lint/format/compile/security scan pass. Tests dùng SQLite tạm/mock Discord/OpenAI/provider, chặn network. 7A.2 thêm 98 tests; backup/restore và so khớp DB thật đạt, không thêm migration. Chưa thử GitHub/Notion thật và owner chưa nghiệm thu UI mới. Chi tiết: [báo cáo 7A.2](docs/PHASE_7A2_VALIDATION.md); các bằng chứng live P4–P6 giữ trong báo cáo tương ứng.
 
 ## Kiểm tra hồi quy Foundation
 
@@ -248,8 +253,8 @@ Người dùng đã xác nhận “Phase 1 DONE” ngày 2026-10-23. Giữ check
 1. Chạy bot trong server riêng, kiểm tra log `bot_online`, chạy `/ping` bằng owner.
 2. Chạy `/menu`, kiểm tra dashboard có các module và trạng thái rõ ràng, không có số liệu giả; panel của owner vẫn là ephemeral.
 3. Dùng tài khoản khác chạy `/ping`, `/menu`: chỉ nhận thông báo không có quyền. Nhắn DM từ tài khoản đó: không được phục vụ. DM owner dùng AI nếu cấu hình sẵn, nếu tắt thì nhận hướng dẫn.
-4. Sau backup/nâng cấp, restart bot, kiểm tra `/ping`, `/menu`, revision `0005_agent`, dữ liệu settings/dashboard và chỉ một worker. Persistence đã có integration tests.
-5. Khi cần hồi quy, thử checklist 3C, 4B/4C và P5, ghi rõ kết quả thực tế. P5 đã nghiệm thu; không tự bắt đầu P6.
+4. Sau backup/nâng cấp, restart bot, kiểm tra `/ping`, `/menu`, revision `0007_connections`, dữ liệu settings/dashboard và chỉ một process bot. Persistence đã có integration tests.
+5. Khi cần hồi quy, thử checklist 3C, 4B/4C, P5/P6 và 7A.1, ghi rõ kết quả thực tế. Không tự bắt đầu checkpoint tiếp theo.
 
 ## Xử lý lỗi thường gặp
 

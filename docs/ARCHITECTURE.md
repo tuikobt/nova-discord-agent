@@ -1,5 +1,13 @@
 # Architecture — NOVA AI
 
+**7A.2:** Discord private GitHubController → GitHubService → ConnectionService
+(owner/resource/version gate) → GitHubReader → GitHubHTTP (GET cố định).
+Gate chạy trước HTTP, sau hàng đợi và sau kết quả; không giữ DB transaction
+trong lúc gọi mạng. HTTP session lazy, close theo NovaClient lifecycle.
+Không có cache/content persistence, worker connector hoặc tool đọc nguồn cho
+LLM; phần đó cần nghiệm thu checkpoint sau. Chi tiết/bounds tại
+[PHASE_7A2_VALIDATION](PHASE_7A2_VALIDATION.md).
+
 **P5 (2026-11-18):** DM → AgentController → Responses API/tool gateway → services.
 Write từ AI dùng chế độ strict: luôn tạo durable preview và chỉ owner click mới thực thi.
 PendingActionService dùng validators/repositories của P3/P4 trong một writer transaction,

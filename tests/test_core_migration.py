@@ -74,7 +74,7 @@ def test_upgrade_from_phase2_backup_preserves_every_foundation_column_and_indexe
             async with upgraded.engine.connect() as connection:
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0006_personal"
+                    == "0007_connections"
                 )
                 assert (await connection.execute(text("PRAGMA foreign_key_check"))).all() == []
                 for table, indexes in {
@@ -196,7 +196,7 @@ def test_downgrade_refuses_to_discard_core_records(settings, model):
             async with database.engine.connect() as connection:
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0006_personal"
+                    == "0007_connections"
                 )
                 tables = await connection.run_sync(lambda conn: inspect(conn).get_table_names())
                 assert set(tables) == FOUNDATION | CORE | {
@@ -207,6 +207,7 @@ def test_downgrade_refuses_to_discard_core_records(settings, model):
                     "memory_entries",
                     "automation_policies",
                     "automation_runs",
+                    "integration_connections",
                 }
         finally:
             await database.close()

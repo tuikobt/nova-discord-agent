@@ -113,7 +113,7 @@ def test_backup_upgrade_empty_downgrade_reupgrade_and_restore_preserve_every_p1_
         try:
             await database.initialize()
             await database.initialize()
-            assert await revision(database) == "0006_personal"
+            assert await revision(database) == "0007_connections"
             assert await snapshot(database) == before
             async with database.engine.connect() as connection:
                 assert (await connection.execute(text("PRAGMA foreign_key_check"))).all() == []
@@ -204,7 +204,7 @@ def test_downgrade_refuses_to_discard_even_terminal_reminder_records(settings, w
                     await connection.run_sync(
                         lambda conn: migrate(conn, "downgrade", "0002_core_management")
                     )
-            assert await revision(database) == "0006_personal"
+            assert await revision(database) == "0007_connections"
             assert await snapshot(database) == before
             async with database.sessions() as session:
                 assert (await session.get(Reminder, key)).status == "done"
