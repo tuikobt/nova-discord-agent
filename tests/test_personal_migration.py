@@ -144,7 +144,7 @@ def test_downgrade_refuses_any_phase6_history(settings, kind):
             async with db.engine.connect() as connection:
                 assert (
                     await connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "0006_personal"
+                    == "0007_connections"
                 )
                 assert await connection.scalar(text("PRAGMA integrity_check")) == "ok"
         finally:

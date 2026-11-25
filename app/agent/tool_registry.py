@@ -49,6 +49,16 @@ REMINDER = obj(
 )
 CHANGE = obj(event_id=ID, starts_at=string(), ends_at=string())
 SCHEMAS = {
+    "configure_connection": obj(
+        connection_id=OPT_ID,
+        expected_version={"type": "integer", "minimum": 0},
+        provider={"type": "string", "enum": ["github", "notion"]},
+        label=string(minLength=1, maxLength=80),
+        resources={"type": "array", "items": string(maxLength=400), "minItems": 1, "maxItems": 10},
+    ),
+    "disconnect_connection": obj(
+        connection_id=ID, expected_version={"type": "integer", "minimum": 1}
+    ),
     "search_memory": obj(query=string(maxLength=200)),
     "propose_memory": obj(
         content=string(maxLength=1000, minLength=1),
@@ -148,6 +158,8 @@ SCHEMAS = {
 }
 WRITES = frozenset(
     {
+        "configure_connection",
+        "disconnect_connection",
         "create_task",
         "complete_task",
         "create_calendar_event",

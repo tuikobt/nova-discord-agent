@@ -214,6 +214,9 @@ class PanelView(OwnerView):
             if target != screen:
                 self.add_item(NavigateButton(controller, target, label=target.value.title(), row=0))
         if screen == Screen.SETTINGS and not error:
+            from app.discord_bot.connections_controller import OpenConnectionsButton
+
+            self.add_item(OpenConnectionsButton(controller))
             self.add_item(EditTimezoneButton(controller))
             self.add_item(
                 NavigateButton(controller, Screen.REPORTS, label="Automation & Planner", row=1)

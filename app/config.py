@@ -12,6 +12,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
 from app.agent.config import AgentConfig
+from app.integrations.config import ConnectionCredentials
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./nova.db"
@@ -65,6 +66,7 @@ class Settings:
     log_level: str = "INFO"
     guild_id: int | None = None
     ai: AgentConfig = field(default_factory=AgentConfig)
+    connections: ConnectionCredentials = field(default_factory=ConnectionCredentials, repr=False)
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, str]) -> "Settings":
@@ -91,6 +93,7 @@ class Settings:
             log_level=level,
             guild_id=validate_discord_id(guild, "DISCORD_GUILD_ID") if guild else None,
             ai=AgentConfig.from_mapping(values),
+            connections=ConnectionCredentials.from_mapping(values),
         )
 
 

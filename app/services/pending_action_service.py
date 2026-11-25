@@ -24,6 +24,7 @@ from app.db.models import (
 )
 from app.db.repositories.calendar_repository import CalendarRepository
 from app.db.repositories.task_repository import TaskRepository
+from app.domain.connections import CONNECTION_WRITES
 from app.domain.core import EventData, TaskData, to_record
 from app.domain.errors import (
     ApprovalInvalidError,
@@ -81,6 +82,8 @@ class PendingActionService(CoreService):
     async def plan(self, session, owner, kind, args, *, source="manual"):
         """Rebuilt at approval; any changed record or new conflict invalidates preview."""
         args = validate(kind, args)
+        if kind in CONNECTION_WRITES:
+            return await self.core.connections.plan(session, owner, kind, args)
         from app.services.personal_service import PERSONAL_WRITES
 
         if kind in PERSONAL_WRITES:
@@ -376,6 +379,8 @@ class PendingActionService(CoreService):
         return result
 
     async def apply_plan(self, session, owner, current, choice, row):
+        if current.get("connection_kind"):
+            return await self.core.connections.apply(session, owner, current)
         if current.get("personal_kind"):
             return await self.core.personal.apply(session, owner, current, row)
         ids = []

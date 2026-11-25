@@ -37,14 +37,15 @@ class SafeJsonFormatter(logging.Formatter):
         return json.dumps(self._filter.redact(payload), ensure_ascii=False)
 
 
-def configure_logging(level: str, token: str, api_key: str = "") -> None:
+def configure_logging(level: str, token: str, api_key: str = "", *extra_secrets: str) -> None:
     handler = logging.StreamHandler()
-    handler.setFormatter(SafeJsonFormatter((token, api_key)))
+    handler.setFormatter(SafeJsonFormatter((token, api_key, *extra_secrets)))
     logging.basicConfig(level=level, handlers=[handler], force=True)
     # SDK debug/error payloads can contain raw Gateway messages or SQL values.
     # NOVA's own handlers report safe error classes and lifecycle events instead.
     for name in (
         "discord",
+        "aiohttp",
         "sqlalchemy",
         "aiosqlite",
         "openai",

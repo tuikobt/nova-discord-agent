@@ -15,10 +15,54 @@ ngay trong Discord. Bạn cũng có thể bấm **Hướng dẫn** trên bảng 
 | Xem hoặc sửa lịch đã lưu | Danh sách lựa chọn → **Lịch của bạn** |
 | Xem, sửa, xóa điều NOVA nhớ về bạn | Danh sách lựa chọn → **Điều NOVA ghi nhớ** |
 | Đổi múi giờ | **Cài đặt** |
+| Chuẩn bị phạm vi GitHub/Notion hoặc kiểm tra AI | **Cài đặt** → **Kết nối & chẩn đoán** |
 
 Các màn hình chứa dữ liệu cá nhân mở riêng cho bạn. Bảng neo chung chỉ giúp
 điều hướng. Các nút **Về trang chính** và **Làm mới** giúp quay lại hoặc đọc dữ
 liệu hiện tại. Nếu bảng hết hạn sau 10 phút, mở lại `/menu`.
+
+## Chuẩn bị kết nối và kiểm tra AI
+
+Mở **Cài đặt → Kết nối & chẩn đoán**. Đã có lưu phạm vi và đọc GitHub;
+Notion còn chờ checkpoint sau. Bạn có thể thử luồng sau:
+
+1. Bấm **Thêm GitHub** hoặc **Thêm Notion**, đặt tên và nhập repo `owner/repo`
+   hoặc link/ID trang Notion cần dùng, mỗi dòng một mục (tối đa 10). Đây là
+   tài nguyên bạn tự chọn, NOVA không tự chọn toàn tài khoản/workspace.
+2. Xem đề xuất, đọc đủ các trang và **Duyệt**. Hủy thì không tạo kết nối.
+3. Bấm **Làm mới kết nối**, chọn kết nối để xem/sửa phạm vi. **Kiểm tra dịch vụ**
+   thử quyền đọc GitHub thật; Notion hiện chưa có bộ đọc. Đã lưu phạm vi chưa
+   có nghĩa token đã được cấp quyền đọc. Kiểm tra làm thay đổi version, nên
+   mở lại chi tiết nếu panel cũ báo dữ liệu đã đổi.
+4. Muốn ngừng dùng nguồn, chọn **Ngắt trong NOVA** và Duyệt. Token ở nhà cung
+   cấp vẫn giữ nguyên; bạn có thể tự thu hồi ở đó nếu cần.
+
+Token chỉ cấu hình trực tiếp trên máy chạy bot (`GITHUB_READ_TOKEN` hoặc
+`NOTION_READ_TOKEN` trong `.env`/secret manager), không nhập vào Discord/chat.
+Chưa cần cấu hình hai khóa này để sử dụng Tasks/Calendar/Reminders/AI hiện có.
+
+**Thử AI (tính quota)** gọi OpenAI thật với câu kiểm tra ngắn, không gửi công
+việc, lịch hay tài liệu cá nhân. Chỉ bấm khi muốn kiểm tra; mở Cài đặt không
+tự gọi. Khi thử thất bại, quota dự trữ vẫn được giữ nếu chưa biết usage thật.
+
+### Đọc GitHub
+
+Trên máy chạy bot, cấu hình GITHUB_READ_TOKEN là fine-grained token giới hạn
+repo cần dùng, các quyền Metadata/Issues/Pull requests/Contents đều chỉ Read.
+Restart bot sau khi cấu hình. Không cần bật AI để đọc GitHub và không cần key
+GitHub để dùng các chức năng P1–P6.
+
+Sau khi Duyệt phạm vi, mở lại chi tiết connection → **Đọc GitHub** → chọn repo.
+Bạn xem metadata, bấm Issues/Pull requests để lọc và chọn từng mục chi tiết,
+hoặc Đọc tài liệu rồi nhập README.md hay path .md/.txt/.rst/.adoc trong repo.
+File tối đa 32 KiB; không tải cả repository, ảnh, attachment hoặc chạy code.
+Mỗi kết quả có giờ lấy và link nguồn. Nội dung dài rút gọn; mở nguồn để đọc đủ.
+Trang có tối đa 10 mục, không phải tổng repo; trang issues có thể rỗng sau khi
+loại PR, hãy thử Trang sau nếu có. Scope vừa sửa/ngắt cần mở panel mới.
+
+Đọc chỉ hiển thị riêng cho bạn, chưa gửi cho AI hoặc nhập thành task/ghi nhớ.
+Hỏi/tổng hợp GitHub bằng DM sẽ có ở checkpoint sau. Thiếu token/quyền sẽ báo
+rõ; NOVA không lấy số 0 hay dữ liệu ví dụ thay cho kết quả API lỗi.
 
 ## Bắt đầu trong 5 phút
 

@@ -11,6 +11,7 @@ import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 
+from app.integrations.config import CREDENTIAL_REFS
 from app.security import SECRET_PATTERNS, SecretFilter
 
 
@@ -76,13 +77,14 @@ def git(root, *args):
 def local_secrets(root):
     """Only for exact comparison. Never include these values in findings/errors."""
     values = {}
+    names = {"DISCORD_TOKEN", "OPENAI_API_KEY", *CREDENTIAL_REFS.values()}
     path = root / ".env"
     if path.is_file():
         for line in path.read_text(encoding="utf-8-sig").splitlines():
             name, separator, value = line.partition("=")
-            if separator and name.strip() in {"DISCORD_TOKEN", "OPENAI_API_KEY"}:
+            if separator and name.strip() in names:
                 values[name.strip()] = value.strip().strip("\"'")
-    for name in ("DISCORD_TOKEN", "OPENAI_API_KEY"):
+    for name in names:
         if name in os.environ:
             values[name] = os.environ[name]
     return tuple(v for v in values.values() if len(v) >= 20 and "replace" not in v)

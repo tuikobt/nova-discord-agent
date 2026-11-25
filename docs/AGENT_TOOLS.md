@@ -1,5 +1,11 @@
 # AI Agent & Tool Contract — NOVA
 
+**7A.2:** GitHub đọc qua service/UI riêng, chưa thêm tool model hoặc gửi external
+text vào Responses/context. `configure_connection`/`disconnect_connection`
+chỉ là schema cho approval UI; gateway chặn model dùng chúng kể cả có tên
+trong allowed set. Không có tool HTTP tùy ý. Nối GitHub/Notion vào trợ lý, source
+citations và chống injection từ external context thuộc 7A.4 sau nghiệm thu reader.
+
 **Phase:** tích hợp từ P5. Registry thực thi tại `app/agent/tool_registry.py`;
 gateway và backend validate độc lập. P5 đầu dùng policy strict cho mọi write L1/L2:
 tool `create_*`/`complete_task` cũng chỉ tạo preview; owner bấm Duyệt mới ghi.

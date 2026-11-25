@@ -13,6 +13,7 @@ SECRET_PATTERNS = {
         r"[A-Za-z0-9_-]{20,30}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,})\b"
     ),
     "github_token": re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})\b"),
+    "notion_token": re.compile(r"\b(?:ntn_[A-Za-z0-9_-]{20,}|secret_[A-Za-z0-9]{20,})\b"),
     "private_key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----[\s\S]*"),
 }
 

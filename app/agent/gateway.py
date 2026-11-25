@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.agent.serialization import plain
 from app.agent.tool_registry import WRITES, day, timestamp, validate
 from app.db.models import User, UserSettings
+from app.domain.connections import CONNECTION_WRITES
 from app.domain.errors import ValidationError
 from app.services.calendar_service import local_window
 from app.services.core_service import CoreService
@@ -28,6 +29,10 @@ class ToolGateway(CoreService):
 
     async def call(self, actor, name, args, *, turn, allowed):
         self.authorize(actor)
+        if name in CONNECTION_WRITES:
+            raise ValidationError(
+                "Quản lý kết nối tại Cài đặt; AI không được tự thay phạm vi hoặc quyền."
+            )
         if name not in allowed:
             raise ValidationError("Tool không được mở trong lượt này.")
         args = validate(name, args)

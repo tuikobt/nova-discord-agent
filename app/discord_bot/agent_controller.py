@@ -13,6 +13,7 @@ from app.agent.personal_ai import PersonalAI
 from app.agent.serialization import encode
 from app.agent.usage import UsageService
 from app.discord_bot.checks import authorize_interaction
+from app.domain.connections import CONNECTION_WRITES
 from app.domain.errors import DomainError
 from app.domain.time import zone
 from app.security import SecretFilter
@@ -64,6 +65,10 @@ def preview_pages(proposal):
     plan = proposal["preview"]
     if plan.get("erased"):
         return ["Nội dung memory đã được xóa; đề xuất cũ không còn hiệu lực."]
+    if plan.get("connection_kind"):
+        from app.discord_bot.renderers.connections import connection_preview
+
+        return pages(connection_preview(proposal))
     if plan.get("personal_kind"):
         from app.discord_bot.renderers.personal import preview_lines
 
@@ -192,7 +197,13 @@ class AgentController:
             self.pending,
             self.usage,
             transport,
-            secrets=SecretFilter((client.settings.discord_token, self.config.key)),
+            secrets=SecretFilter(
+                (
+                    client.settings.discord_token,
+                    self.config.key,
+                    *client.settings.connections.registered(),
+                )
+            ),
         )
         client.core_services.personal.secrets = self.orchestrator.secrets
         client.core_services.personal.on_memory_change = self.orchestrator.clear
@@ -280,7 +291,7 @@ class AgentController:
                 from app.services.personal_service import PERSONAL_WRITES
 
                 if (
-                    proposal["action"] not in PERSONAL_WRITES
+                    proposal["action"] not in PERSONAL_WRITES | CONNECTION_WRITES
                     or not interaction.message.flags.ephemeral
                 ):
                     raise ValueError("Private proposal only")

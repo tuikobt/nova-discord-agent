@@ -13,7 +13,7 @@
 | P4 | Reminder Engine | ✅ DONE (2026-11-17, người dùng nghiệm thu) | Reminder Engine/UI, 625 tests, DB/Discord thật và DM/Đã làm |
 | P5 | AI Agent | ✅ DONE (2026-11-18, người dùng nghiệm thu) | AI DM/Responses tools, durable approvals, usage limits, 687 tests và read/create-task live |
 | P6 | Memory & Proactive Automation | ✅ DONE (2026-11-24, người dùng nghiệm thu) | Memory controls, planner, morning/daily/weekly reports, UI tiếng Việt; 803 tests |
-| P7 | Expansion & Deployment | ⬜ NOT STARTED | Goals/Finance/Habits/Notes, integrations optional, Docker/VPS |
+| P7 | Expansion & Deployment | 🟨 IN PROGRESS — 7A.2 | GitHub reader/UI code/tests đạt, chờ cấu hình/thử thật; chưa có Notion, AI đọc nguồn, modules/deploy |
 
 **P0 DONE nghĩa là xong tài liệu thiết kế, không có nghĩa bot đã chạy.** Chỉ đánh dấu P1–P7 `DONE` khi đạt toàn bộ acceptance tương ứng và đã kiểm thử.
 
@@ -214,7 +214,7 @@ Xem [báo cáo P6](PHASE_6_VALIDATION.md), [điều chỉnh UX](PHASE_6_UX.md),
 P6 DONE theo bộ kiểm thử và xác nhận tổng thể của owner. Owner không liệt kê
 riêng từng kịch bản live; không ghi các biến thể Desktop/Mobile, quiet hours,
 fallback và restart đã được Codex thử live nếu chỉ có bằng chứng tự động.
-P7 chưa bắt đầu.
+P7 hiện được theo dõi riêng ở mục dưới; không thay đổi phạm vi nghiệm thu P6.
 
 ### Work packages
 
@@ -231,6 +231,30 @@ P7 chưa bắt đầu.
 - [x] Daily review dùng số liệu thật từ DB; trường hợp chưa có dữ liệu được kiểm thử, không tự bịa năng suất.
 
 ## 9. Phase 7 — Advanced modules, Integrations & Production
+
+Đã lập [kế hoạch P7 chi tiết](PHASE_7_PLAN.md), chia 7A–7F: hỗ trợ công việc qua
+GitHub/Notion, Goals/Notes, Habits, Finance thủ công, hành động ngoài có duyệt và
+vận hành Docker/Linux/VPS. **IN PROGRESS, dừng tại 7A.2** theo checkpoint của kế hoạch.
+
+**2026-11-25 — 7A.1 code/tests đạt:** metadata owner/scope/read-only, durable
+approval thêm/sửa/ngắt, version/revocation guard, token config/redaction và UI
+Cài đặt → Kết nối & chẩn đoán. Không có HTTP adapter GitHub/Notion hoặc tools
+đọc nguồn. Nút thử AI tách riêng, tính quota và không gửi dữ liệu cá nhân.
+**863 passed in 98.26s**, lint/format/compile/security scan đạt; DB thật lên
+`0007_connections`, giữ nguyên 13 bảng/31 rows P1–6, backup/restore drill đạt;
+bot online lại. Chi tiết file/backup/rollback/checklist:
+[báo cáo 7A.1](PHASE_7A1_VALIDATION.md). Owner chưa nghiệm thu UI mới.
+
+**2026-11-25 — 7A.2 code/tests đạt, chờ thử GitHub thật:** bộ đọc/UI riêng cho
+metadata repo, issues/PR và từng tài liệu nhỏ, origin/GET cố định, owner/scope/
+version kiểm tra cả sau hàng đợi và sau fetch. Không gửi dữ liệu GitHub cho AI,
+không import hoặc external write. **961 passed in 65.34s**, lint/format/compile/
+security scan đạt; không có migration mới, DB khớp backup/restore, bot online.
+Chưa có token/phạm vi GitHub được duyệt nên không gọi repo thật. Assumption:
+chỉ GitHub.com, PAT/App token cấu hình thủ công; không hỗ trợ Enterprise/OAuth
+callback hoặc tự refresh token trong checkpoint này. Chi tiết:
+[báo cáo 7A.2](PHASE_7A2_VALIDATION.md). 7A.3–7F chưa bắt đầu; không đánh dấu
+toàn 7A hoặc P7 DONE, giữ riêng bước owner nghiệm thu.
 
 ### Work packages
 
@@ -277,3 +301,5 @@ P7 chưa bắt đầu.
 | 2026-11-18 | P5 | Hoàn thành AI DM/Responses tools, strict durable approvals/context/usage; 687 tests pass; migration bảo toàn 8 bảng cũ; OpenAI read thật, create_task executed/audit success, owner xác nhận hoạt động; P5 DONE, chưa bắt đầu P6 |
 | 2026-11-18 | Security review trước P6 | Rà soát Git/index/history và biên dữ liệu LLM; thêm pre-push/CI, credential redaction, tool minimization và prompt-output guard; xem SECURITY_REVIEW_2026-11-18.md. Không bắt đầu P6 |
 | 2026-11-24 | P6 | Hoàn thành Memory/Planner/Automation, UI tiếng Việt và sửa kết nối AI; DB 0006 bảo toàn P1–5, 803 tests pass, OpenAI read thật; người dùng yêu cầu chốt P6 DONE. P7 chưa bắt đầu |
+| 2026-11-25 | P7A.1 | Khung phạm vi kết nối/approval/chẩn đoán; 863 tests pass; DB 0007 giữ nguyên 13 bảng/31 bản ghi P1–6, backup/restore đạt, bot online. Dừng checkpoint, chờ owner thử UI; chưa triển khai reader hay 7B–7F |
+| 2026-11-25 | P7A.2 | GitHub reader/UI read-only, owner/version/revocation và HTTP bounds; 961 tests pass, schema 0007/data khớp backup/restore, bot online. Chờ token/phạm vi và thử GitHub thật; dừng trước Notion/AI tools và 7B–7F |
